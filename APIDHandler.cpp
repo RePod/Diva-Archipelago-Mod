@@ -1,22 +1,23 @@
+#include "APClient.h"
 #include "APIDHandler.h"
 #include <sstream>
 
 namespace APIDHandler
 {
-	// Com
-	const std::filesystem::path LocalPath = std::filesystem::current_path();
-	const std::filesystem::path SongListFile = "song_list.txt";
-
 	// Internal
 	bool exists = false;
 	bool freeplay = false;
 	bool reload_needed = true;
 	bool reloading = false;
+
+	std::vector<int> seedIDs = { }; // All IDs known to the seed, from slot data
 	std::vector<int> toggleIDs = { };
+
+	std::vector<int> &checked = APClient::CheckedLocations;
 
 	void cacheExists()
 	{
-		exists = std::filesystem::exists(LocalPath / SongListFile);
+		exists = toggleIDs.size() > 0;
 	}
 
 	bool checkNC()
@@ -37,7 +38,7 @@ namespace APIDHandler
 
 	bool check(std::string& line)
 	{
-		if (reload_needed || !exists || line.find("pv_") != 0)
+		if (reload_needed || AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated || line.find("pv_") != 0)
 			return true;
 
 		size_t diff_pos = line.find(".difficulty.");
@@ -68,58 +69,6 @@ namespace APIDHandler
 		freeplay = false;
 		toggleIDs.clear();
 		unlock();
-	}
-
-	void update()
-	{
-		if (reloading || checkNC())
-			return;
-
-		reset();
-		lock();
-
-		APLogger::print("IDHandler > Looking in %s\n", LocalPath.string().c_str());
-		APLogger::print("IDHandler > %s exists: %i\n", SongListFile.string().c_str(), exists);
-
-		std::string buf;
-		std::ifstream file(LocalPath / SongListFile);
-
-		if (file.is_open()) {
-			std::stringstream toggled;
-
-			while (std::getline(file, buf)) {
-				try {
-					auto pvID = std::stoi(buf);
-
-					if (pvID == 0) {
-						freeplay = true;
-						continue;
-					}
-
-					add(pvID);
-					toggled << buf << " ";
-				}
-				catch (std::invalid_argument const& ex) {
-					APLogger::print("IDHandler > %s\n", ex.what());
-				}
-				catch (std::out_of_range const& ex) {
-					APLogger::print("IDHandler > %s\n", ex.what());
-				}
-			}
-
-			APLogger::print("IDHandler < Toggle IDs (FP: %d) %s\n", freeplay, toggled.str().c_str());
-		}
-		else {
-			toggleIDs.clear();
-
-			if (file.fail()) {
-				APLogger::print("IDHandler > Failed to open %s (0x%x)\n", SongListFile.string().c_str(), file.failbit);
-			}
-
-			APLogger::print("IDHandler > No list, clear\n");
-		}
-
-		file.close();
 	}
 
 	void add(int newID)

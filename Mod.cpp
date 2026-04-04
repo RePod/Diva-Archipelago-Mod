@@ -1,3 +1,4 @@
+#include "APClient.h"
 #include "APDeathLink.h"
 #include "APGUI.h"
 #include "APIDHandler.h"
@@ -5,6 +6,7 @@
 #include "APTraps.h"
 #include "Diva.h"
 #include "pch.h"
+#include <Archipelago.h>
 #include <d3d11.h>
 #include <d3d11.h>
 #include <detours.h>
@@ -51,11 +53,9 @@ bool skip_mainmenu = false;
 
 const fs::path LocalPath = fs::current_path();
 const fs::path ConfigTOML = "config.toml";
-const fs::path OutputFileName = "results.json";
 
 void processConfig() {
     // Move to a class and do not do this on init time
-
     try {
         std::ifstream file(LocalPath / ConfigTOML); // CWD is the mod folder within Init
         if (!file.is_open()) {
@@ -72,18 +72,6 @@ void processConfig() {
     }
     catch (const std::exception& e) {
         APLogger::print("Error parsing config file: %s\n", e.what());
-    }
-}
-
-void writeToFile(const nlohmann::json& results) {
-    // Write the JSON to a file
-    std::ofstream outputFile(LocalPath / OutputFileName);
-    if (outputFile.is_open()) {
-        outputFile << results.dump(4); // Pretty-print JSON with an indent of 4 spaces
-        outputFile.close();
-    }
-    else {
-        APLogger::print("Failed to write out rseults.json\n");
     }
 }
 
@@ -106,17 +94,13 @@ HOOK(void, __fastcall, _PvResultsFinalize, 0x14024B800, char* PvPlayData, long l
     if (playerGrade == 2 && *playerPercent < *clearPercent)
         playerGrade = 1; // "Cheap"
 
-    nlohmann::json results = {
-        { "pvId", *(int*)(PvPlayData + 0x10) },
-        { "pvName", pvName->c_str() },
-        { "pvDifficulty", diff[1] + diff[2] },
-        { "scoreGrade", playerGrade },
-        { "deathLinked", APDeathLink::deathLinked },
-    };
-
-    APLogger::print("Writing out results.json\n%s\n", results.dump().c_str());
-    std::thread fileWriteThread(writeToFile, results);
-    fileWriteThread.detach();
+    if (playerGrade >= APClient::clearGrade)
+    {
+        APClient::LocationSend(*(int*)(PvPlayData + 0x10));
+    }
+    else {
+        APClient::SendDeath();
+    }
 
     original_PvResultsFinalize(PvPlayData, a2);
 }
@@ -124,7 +108,7 @@ HOOK(void, __fastcall, _PvResultsFinalize, 0x14024B800, char* PvPlayData, long l
 HOOK(void, __fastcall, _PvLoop, 0x140244BA0, char* PvPlayData) {
     original_PvLoop(PvPlayData);
 
-    APDeathLink::run();
+    APDeathLink::run(false);
     APTraps::run();
 }
 
@@ -177,7 +161,6 @@ HOOK(void, __fastcall, _ChangeGameSubState, 0x1527E49E0, int state, int substate
     }
     else if (state == 0 || state == 3) {
         skipped = false;
-        APIDHandler::update();
     }
     else if (state == 9 && substate == 47 || state == 6 && substate == 47) {
         bool reload_was_needed = APIDHandler::reload_needed;
@@ -185,8 +168,6 @@ HOOK(void, __fastcall, _ChangeGameSubState, 0x1527E49E0, int state, int substate
         APIDHandler::unlock();
 
         if (reload_was_needed) {
-            APIDHandler::update();
-
             if (APIDHandler::toggleIDs.size() > 0) {
                 APLogger::print("Forcing needed reload (have IDs)\n");
                 original_ChangeGameSubState(0, 1);
@@ -235,6 +216,8 @@ extern "C"
 {
     void __declspec(dllexport) OnFrame(IDXGISwapChain* swapChain)
     {
+        APClient::CheckMessages();
+
         if (APGUI::g_ImGuiInitialized && !ImGui::GetIO().WantCaptureKeyboard)
             APReload::scan();
 
@@ -242,39 +225,6 @@ extern "C"
         if (!APGUI::g_OriginalWndProc)
             APGUI::g_OriginalWndProc = (WNDPROC)SetWindowLongPtr(APGUI::g_hWnd, GWLP_WNDPROC, (LONG_PTR)HookedWndProc);
         APGUI::onFrame();
-    }
-
-    void __declspec(dllexport) PreInit()
-    {
-        // toml++ does not persist comments and most formatting which is intended for players.
-        // Save an option at the cost of a dropped file to inform new players about reloading and the config.
-        fs::path reload_file = LocalPath / ".reload_warning";
-
-        if (!fs::exists(reload_file)) {
-            try {
-                // This is a wasteful read, but it "should" only ever happen one time ever
-                std::ifstream file(LocalPath / ConfigTOML);
-                auto data = toml::parse(file);
-
-                std::wstring msg = L"Press the reload key on the song list to get new songs.\n"
-                    "Songs can be cleared on any available difficulty for the same checks.\n"
-                    "Configure the reload key and more in the mod's config.toml.\n\n"
-                    "Current reload key: " + data["reload_key"].value_or(L"F7");
-
-                int msgboxID = MessageBox(
-                    NULL,
-                    msg.c_str(),
-                    L"Archipelago Mod",
-                    MB_OK
-                );
-            }
-            catch (const std::exception& e) {
-                APLogger::print("(PreInit) Error parsing config file: %s\n", e.what());
-            }
-
-            std::ofstream reload_out(reload_file);
-            reload_out.close();
-        }
     }
 
     void __declspec(dllexport) Init()

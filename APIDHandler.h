@@ -21,7 +21,6 @@ namespace APIDHandler
 	void unlock();
 	bool check(std::string& line);
 	void reset();
-	void update();
 	void add(int songID);
 	bool contains(int songID);
 

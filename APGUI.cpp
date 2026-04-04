@@ -1,11 +1,21 @@
-#include "APGUI.h"
+#include "APClient.h"
 #include "APDeathLink.h"
+#include "APGUI.h"
 #include "APTraps.h"
 
 namespace APGUI
 {
     bool showImGuiDemo = false;
     bool g_ImGuiInitialized = false;
+    bool firstFrame = true;
+    bool prevUnfocused = false;
+
+    // First run warning
+    namespace fs = std::filesystem;
+    auto LocalPath = fs::current_path();
+    fs::path ConfigTOML = LocalPath / "config.toml";
+    fs::path reload_file = LocalPath / ".reload_warning";
+    bool showWarning = true;
 
     bool autohide = true; // Hide Client during gameplay
 
@@ -50,24 +60,30 @@ namespace APGUI
 
     void onFrame()
     {
+        ImGui_ImplDX11_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+
         // autohide, in game, not paused, not on results
         auto PvPlayData = 0x1412C2330;
         if (autohide && *(bool*)PvPlayData && !*(bool*)(PvPlayData + 0x1) && !*(bool*)(PvPlayData + 0x2D17D)) {
             ImGui::GetIO().WantCaptureKeyboard = false;
             ImGui::GetIO().WantCaptureMouse = false;
+            ImGui::SetNextFrameWantCaptureKeyboard(false);
+            ImGui::SetNextFrameWantCaptureMouse(false);
+
+            ImGui::Render();
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
             return;
         }
-
-        ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
 
         if (showImGuiDemo)
             ImGui::ShowDemoWindow();
 
-        ImGui::Begin("Archipelago Mod");
+        ImGui::Begin("Archipelago Mod", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing);
 
         if (ImGui::BeginTabBar("APTabs")) {
+            APClient::ImGuiTab();
             APGUI::ImGuiTab();
             APDeathLink::ImGuiTab();
             APTraps::ImGuiTab();
@@ -77,15 +93,68 @@ namespace APGUI
             ImGui::EndTabBar();
         }
 
+        if (!firstFrame)
+        {
+            ImVec2 display_size = ImGui::GetIO().DisplaySize;
+            ImVec2 window_pos = ImVec2(display_size.x - ImGui::GetWindowWidth() - (display_size.x * 0.01),
+                                       display_size.y - ImGui::GetWindowHeight() - (display_size.y * 0.01));
+
+            ImGui::SetWindowPos(window_pos, ImGuiCond_FirstUseEver);
+        }
+        else {
+            firstFrame = false;
+        }
+
+        warning();
+
         ImGui::End();
 
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     }
 
+    bool warning()
+    {
+        if (!showWarning || fs::exists(reload_file))
+            showWarning = false;
+            return false;
+
+        try {
+            // This is a wasteful read, but it "should" only ever happen one time ever
+            std::ifstream file(ConfigTOML);
+            auto data = toml::parse(file);
+
+            ImGui::OpenPopup("Archipelago Mod - First Run");
+            if (ImGui::BeginPopupModal("Archipelago Mod - First Run", NULL, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize))
+            {
+                ImGui::SetWindowFocus("Archipelago Mod - First Run");
+
+                std::string warn = "After connecting, press the reload key on the song list to get new songs.\n"
+                    "Songs can be cleared on any available difficulty for the same checks.\n\n"
+                    "Current reload key: " + (std::string)data["reload_key"].value_or("F7");
+
+                ImGui::Text(warn.c_str());
+
+                ImGui::Separator();
+                if (ImGui::Button("I don't remember installing this mod"))
+                {
+                    showWarning = false;
+                    std::ofstream reload_out(reload_file);
+                    reload_out.close();
+                    ImGui::CloseCurrentPopup();
+                    return false;
+                }
+                ImGui::EndPopup();
+            }
+        }
+        catch (const std::exception& e) {
+            APLogger::print("Error parsing config file: %s\n", e.what());
+        }
+    }
+
     void ImGuiTab()
     {
-        if (ImGui::BeginTabItem("Client")) {
+        if (ImGui::BeginTabItem("Settings")) {
             ImGui::Checkbox("Hide during gameplay", &autohide);
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
 

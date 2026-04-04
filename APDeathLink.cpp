@@ -7,12 +7,6 @@ namespace APDeathLink
     int percent = 100; // Percentage of max HP to lose on receive. "If at or below this, die."
     float safety = 10.0f; // Seconds after receiving a DL to avoid chain reaction DLs.
 
-    // Com
-    extern const fs::path LocalPath = fs::current_path();
-    const fs::path DeathLinkInFile = "death_link_in"; // Inbound communication file
-    const fs::path DeathLinkOutFile = "death_link_out"; // Outbound communication file
-    const fs::path HPFile = "hp.txt"; // Progressive HP file with ext for easy editing
-
     const uint64_t DivaGameHP = 0x00000001412EF564;
     const uint64_t DivaGameTimer = 0x00000001412EE340;
     const uint64_t DivaSafetyWidthPercent = 0x00000001412EF644;
@@ -43,34 +37,7 @@ namespace APDeathLink
 
         APLogger::print("deathlink_safety set to %.02f (config: %.02f)\n", safety, config_safety);
 
-        fs::remove(LocalPath / DeathLinkInFile);
-        fs::remove(LocalPath / DeathLinkOutFile);
-
         reset();
-    }
-
-    bool exists(const fs::path& in)
-    {
-        return fs::exists(LocalPath / in);
-    }
-
-    int touch()
-    {
-        deathLinked = true;
-
-        if (!APDeathLink::exists(DeathLinkInFile)) {
-            std::ofstream death_link_out(LocalPath / DeathLinkOutFile);
-
-            if (!death_link_out.is_open()) {
-                APLogger::print("DeathLink > Failed to send death_link_out\n");
-                return 1;
-            }
-
-            death_link_out.close();
-            APLogger::print("DeathLink > Sending death_link_out\n");
-        }
-
-        return 0;
     }
 
     void reset()
@@ -86,51 +53,7 @@ namespace APDeathLink
 
     void prog_hp_update()
     {
-        fs::path hp_path = LocalPath / HPFile;
-
-        std::ifstream file;
-        file.open(hp_path);
-
-        // TODO: remove the non-.txt fallback after reasonable migration time.
-        if (!file.is_open()) {
-            hp_path.replace_extension("");
-            file.open(hp_path);
-        }
-
-        if (!file.is_open()) {
-            prog_hp_reset();
-            return;
-        }
-
-        bool changed = false;
-
-        int i = 0;
-
-        while (std::getline(file, buf)) {
-            if (i >= 2)
-                break;
-
-            try {
-                auto val = std::clamp(std::stoi(buf), 1, 255);
-
-                if (i == 0 && val != HPnumerator) {
-                    changed = true;
-                    HPnumerator = val;
-                }
-                if (i == 1 && val != HPdenominator) {
-                    changed = true;
-                    HPdenominator = val;
-                }
-            }
-            catch (std::invalid_argument const& ex) {
-                APLogger::print("DeathLinkHP > %s\n", ex.what());
-            }
-            catch (std::out_of_range const& ex) {
-                APLogger::print("DeathLinkHP > %s\n", ex.what());
-            }
-
-            i += 1;
-        }
+        bool changed = true;
 
         HPnumerator = min(HPnumerator, HPdenominator);
 
@@ -172,8 +95,8 @@ namespace APDeathLink
         if (HPdenominator == 1)
             return;
 
-        HPnumerator = 1;
-        HPdenominator = 1;
+        /*HPnumerator = 1;
+        HPdenominator = 1;*/
         HPprefloor = 76;
         HPprepercent = 30;
         HPfloor = 0;
@@ -206,10 +129,10 @@ namespace APDeathLink
             return;
         }
 
-        touch();
+        deathLinked = true;
     }
 
-    void run()
+    void run(bool received)
     {
         auto now = *(float*)DivaGameTimer;
 
@@ -245,7 +168,7 @@ namespace APDeathLink
             }
         }
 
-        if (deathLinked || !APDeathLink::exists(DeathLinkInFile))
+        if (deathLinked || !received)
             return;
 
         lastDeathLink = now;
@@ -262,8 +185,6 @@ namespace APDeathLink
 
         currentHP = toHP;
         setHP(currentHP);
-
-        fs::remove(LocalPath / DeathLinkInFile);
     }
 
     void setHP(uint8_t HP)
@@ -274,8 +195,7 @@ namespace APDeathLink
     void ImGuiTab()
     {
         if (ImGui::BeginTabItem("DeathLink")) {
-
-            float progress = (float)(HPdenominator - HPnumerator) / (float)HPdenominator;
+            float progress = (float)min(HPdenominator, (HPdenominator - HPnumerator)) / (float)HPdenominator;
             char buf[8];
             sprintf(buf, "%d / %d", HPnumerator, HPdenominator);
 
@@ -292,10 +212,14 @@ namespace APDeathLink
             HelpMarker("Seconds after receiving where dying does not send one out.");
 
             if (ImGui::Button("Die"))
+            {
+                deathLinked = true;
                 setHP(0);
+            }
             ImGui::SameLine();
             if (ImGui::Button("+ No Fail/Protected"))
             {
+                deathLinked = true;
                 WRITE_MEMORY(0x1412C2330 + 0x2D31D, bool, 0);
                 setHP(0);
             }

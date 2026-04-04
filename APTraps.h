@@ -12,12 +12,14 @@ namespace APTraps
 	extern bool isHidden;
 
 	void config(toml::v3::ex::parse_result& data);
-
 	int reset();
 	void resetIcon();
 	void run();
 
-	bool exists(const fs::path& in);
+	void touchSudden();
+	void touchHidden();
+	void touchIcon();
+
 	uint64_t getGameControlConfig();
 	uint64_t getIconAddress();
 
