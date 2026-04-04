@@ -18,6 +18,7 @@ namespace APClient
     // TODO: ID remaps
     AP_RoomInfo RoomInfo;
     std::string DatapackageChecksum;
+    bool datapackageLoaded = false;
 
     std::filesystem::path LocalPath = std::filesystem::current_path();
     nlohmann::json_abi_v3_12_0::json datapackageJSON;
@@ -74,6 +75,7 @@ namespace APClient
 
     void reset()
     {
+        datapackageLoaded = false;
         CheckedLocations.clear();
 
         say[0] = '\0';
@@ -205,8 +207,6 @@ namespace APClient
     bool LoadDatapackage()
     {
         // Dynamic datapackage lives on.
-
-        static bool datapackageLoaded = false;
 
         if (datapackageLoaded)
             return true;
