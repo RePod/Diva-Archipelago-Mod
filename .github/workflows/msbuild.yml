@@ -48,3 +48,4 @@ jobs:
       with:
         name: artifact-mod
         path: .\dist\*
+        compression-level: 9 # not my compute. counteract debug size.
