@@ -75,7 +75,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)Dependencies;$(ProjectDir)Dependencies\Detours;$(ProjectDir)Dependencies\Detours\include;$(ProjectDir)Dependencies\toml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Dependencies;$(ProjectDir)Dependencies\Detours;$(ProjectDir)Dependencies\Detours\include;$(ProjectDir)Dependencies\imgui;$(ProjectDir)Dependencies\toml\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -87,6 +87,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="APGUI.h" />
     <ClInclude Include="APIDHandler.h" />
     <ClInclude Include="APLogger.h" />
     <ClInclude Include="APReload.h" />
@@ -101,11 +102,19 @@
     <ClInclude Include="virtualKey.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="APGUI.cpp" />
     <ClCompile Include="APIDHandler.cpp" />
     <ClCompile Include="APLogger.cpp" />
     <ClCompile Include="APReload.cpp" />
     <ClCompile Include="APTraps.cpp" />
     <ClCompile Include="APDeathLink.cpp" />
+    <ClCompile Include="Dependencies\imgui\imgui.cpp" />
+    <ClCompile Include="Dependencies\imgui\imgui_demo.cpp" />
+    <ClCompile Include="Dependencies\imgui\imgui_draw.cpp" />
+    <ClCompile Include="Dependencies\imgui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Dependencies\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Dependencies\imgui\imgui_tables.cpp" />
+    <ClCompile Include="Dependencies\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Dependencies\SigScan.cpp" />
     <ClCompile Include="Mod.cpp" />
     <ClCompile Include="pch.cpp">

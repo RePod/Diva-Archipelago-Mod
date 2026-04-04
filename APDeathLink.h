@@ -8,6 +8,7 @@ namespace fs = std::filesystem;
 namespace APDeathLink
 {
 	extern bool safetyExpired;
+	extern int HPnumerator;
 	extern int HPdenominator;
 	extern bool deathLinked;
 
@@ -19,4 +20,7 @@ namespace APDeathLink
 	void run();
 	void prog_hp_update();
 	void prog_hp_reset();
+	void setHP(uint8_t);
+
+	void ImGuiTab();
 };

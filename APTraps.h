@@ -23,4 +23,6 @@ namespace APTraps
 
 	uint8_t getCurrentIcon();
 	void rollIcon();
+
+	void ImGuiTab();
 }

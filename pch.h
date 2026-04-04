@@ -20,5 +20,19 @@
 #include <string>
 #include <thread>
 #include <toml++/toml.h>
+#include <imgui.h>
+
+// TODO: Relocate
+inline void HelpMarker(const char* desc)
+{
+    ImGui::TextDisabled("(?)");
+    if (ImGui::BeginItemTooltip())
+    {
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}
 
 #endif //PCH_H

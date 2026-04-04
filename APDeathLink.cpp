@@ -231,12 +231,12 @@ namespace APDeathLink
             if (safetyExpired && !HPengaged && currentHP <= HPprefloor) {
                 // Default safety window expired. Use rolling safety as kill floor.
                 APLogger::print("[%6.2f] DeathLinkHP > Tripped at %i HP (rolling)\n", now, currentHP);
-                WRITE_MEMORY(DivaGameHP, int, 0);
+                setHP(0);
             }
 
             if (safetyExpired && HPengaged && currentHP <= HPfloor) {
                 APLogger::print("[%6.2f] DeathLinkHP > Tripped at %i HP\n", now, currentHP);
-                WRITE_MEMORY(DivaGameHP, int, 0);
+                setHP(0);
             }
             else if (!HPengaged && currentHP >= HPfloor + 3) {
                 APLogger::print("[%6.2f] DeathLinkHP < Engaged at %i HP\n", now, currentHP);
@@ -261,8 +261,46 @@ namespace APDeathLink
             now, currentHP, hit, toHP, deathLinked);
 
         currentHP = toHP;
-        WRITE_MEMORY(DivaGameHP, int, static_cast<uint8_t>(currentHP));
+        setHP(currentHP);
 
         fs::remove(LocalPath / DeathLinkInFile);
+    }
+
+    void setHP(uint8_t HP)
+    {
+        WRITE_MEMORY(DivaGameHP, int, static_cast<uint8_t>(HP));
+    }
+
+    void ImGuiTab()
+    {
+        if (ImGui::BeginTabItem("DeathLink")) {
+
+            float progress = (float)(HPdenominator - HPnumerator) / (float)HPdenominator;
+            char buf[8];
+            sprintf(buf, "%d / %d", HPnumerator, HPdenominator);
+
+            ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f), buf);
+            ImGui::SameLine();
+            ImGui::Text("Progressive HP");
+
+            ImGui::SliderInt("DeathLink Percent", &percent, 0, 100, "%d%%");
+            ImGui::SameLine();
+            HelpMarker("Percent of max HP to lose on receive.\n<100 for non-lethal");
+
+            ImGui::SliderFloat("DeathLink Safety", &safety, 0.0f, 30.0f, "%.1f seconds");
+            ImGui::SameLine();
+            HelpMarker("Seconds after receiving where dying does not send one out.");
+
+            if (ImGui::Button("Die"))
+                setHP(0);
+            ImGui::SameLine();
+            if (ImGui::Button("+ No Fail/Protected"))
+            {
+                WRITE_MEMORY(0x1412C2330 + 0x2D31D, bool, 0);
+                setHP(0);
+            }
+
+            ImGui::EndTabItem();
+        }
     }
 }

@@ -1,12 +1,50 @@
 #include "APDeathLink.h"
+#include "APGUI.h"
 #include "APIDHandler.h"
 #include "APReload.h"
 #include "APTraps.h"
 #include "Diva.h"
 #include "pch.h"
+#include <d3d11.h>
+#include <d3d11.h>
 #include <detours.h>
+#include <imgui_impl_dx11.h>
+#include <imgui_impl_win32.h>
 
 namespace fs = std::filesystem;
+
+HOOK(bool, __fastcall, _InputEverythingElse, 0x1402AB070, long long a1, int btn)
+{
+    return ImGui::GetIO().WantCaptureKeyboard ? false : original_InputEverythingElse(a1, btn);
+}
+
+HOOK(bool, __fastcall, _InputAcceptBack, 0x1402AAF80, long long a1, int btn)
+{
+    return ImGui::GetIO().WantCaptureKeyboard ? false : original_InputAcceptBack(a1, btn);
+}
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK HookedWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+        return true;
+
+    if (ImGui::GetIO().WantCaptureMouse)
+    {
+        switch (msg)
+        {
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP:
+        case WM_MOUSEMOVE:
+        case WM_MOUSEWHEEL:
+            return 0;
+        }
+    }
+
+    return CallWindowProc(APGUI::g_OriginalWndProc, hWnd, msg, wParam, lParam);
+}
 
 // Archipelago Mod variables
 bool skip_mainmenu = false;
@@ -195,9 +233,15 @@ HOOK(void, __fastcall, _load_null, 0x1405948E0, long long* a1, unsigned long lon
 
 extern "C"
 {
-    void __declspec(dllexport) OnFrame(/*IDXGISwapChain* swapChain*/)
+    void __declspec(dllexport) OnFrame(IDXGISwapChain* swapChain)
     {
-        APReload::scan();
+        if (APGUI::g_ImGuiInitialized && !ImGui::GetIO().WantCaptureKeyboard)
+            APReload::scan();
+
+        APGUI::init(swapChain);
+        if (!APGUI::g_OriginalWndProc)
+            APGUI::g_OriginalWndProc = (WNDPROC)SetWindowLongPtr(APGUI::g_hWnd, GWLP_WNDPROC, (LONG_PTR)HookedWndProc);
+        APGUI::onFrame();
     }
 
     void __declspec(dllexport) PreInit()
@@ -246,5 +290,8 @@ extern "C"
         INSTALL_HOOK(_ReadDBLine);
         INSTALL_HOOK(_load_null);
         INSTALL_HOOK(_cust_null);
+
+        INSTALL_HOOK(_InputAcceptBack);
+        INSTALL_HOOK(_InputEverythingElse);
     }
 }

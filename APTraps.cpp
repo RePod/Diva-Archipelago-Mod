@@ -210,4 +210,21 @@ namespace APTraps
 
 		WRITE_MEMORY(getIconAddress(), uint8_t, (uint8_t)nextIcon);
 	}
+
+	void ImGuiTab()
+	{
+		if (ImGui::BeginTabItem("Traps")) {
+			ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds");
+			ImGui::SameLine();
+			HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
+
+			ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds");
+			ImGui::SameLine();
+			HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
+
+			ImGui::Checkbox("Allow Sudden and Hidden to overlap", &suhidden);
+
+			ImGui::EndTabItem();
+		}
+	}
 }
