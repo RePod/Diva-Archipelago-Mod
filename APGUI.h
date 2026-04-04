@@ -16,5 +16,3 @@ namespace APGUI
     bool warning();
     void ImGuiTab();
 }
-
-void HelpMarker(const char* desc);
