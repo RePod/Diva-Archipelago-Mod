@@ -7,6 +7,7 @@ namespace APClient
     extern int clearGrade;
     extern std::vector<int> CheckedLocations;
 
+    void config(toml::v3::ex::parse_result& data);
     void reset();
 
     void FromSlot_victoryID(int);

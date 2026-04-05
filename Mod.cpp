@@ -54,6 +54,14 @@ const fs::path LocalPath = fs::current_path();
 const fs::path ConfigTOML = "config.toml";
 
 void processConfig() {
+    // The days of reloading the config for changes is over. Do it in the Client!
+    static bool once = false;
+
+    if (once)
+        return;
+
+    once = true;
+
     // Move to a class and do not do this on init time
     try {
         std::ifstream file(LocalPath / ConfigTOML); // CWD is the mod folder within Init
@@ -65,6 +73,7 @@ void processConfig() {
         auto data = toml::parse(file);
 
         skip_mainmenu = data["skip_mainmenu"].value_or(true);
+        APClient::config(data);
         APDeathLink::config(data);
         APTraps::config(data);
         APReload::config(data);
@@ -133,7 +142,7 @@ HOOK(float, __fastcall, _SafetyDuration, 0x14024a5f0, long long a1) {
     auto time = original_SafetyDuration(a1);
 
     APDeathLink::safetyExpired = (time <= 0.0f);
-    if (APDeathLink::safetyExpired && APDeathLink::HPdenominator > 1)
+    if (APDeathLink::safetyExpired && APDeathLink::HPnumerator < APDeathLink::HPdenominator)
         return 0.39f;
 
     return time;

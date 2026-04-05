@@ -8,9 +8,11 @@ namespace APClient
 {
     const char* GameName = "Hatsune Miku Project Diva Mega Mix+";
 
-    char slotName[16] = "Player1";
-    char slotPassword[32] = "";
-    char slotServer[64] = "archipelago.gg:38281";
+    // Any char where a string makes sense is for ImGui::InputText without using ImGui's stdlib string.
+
+    char slotName[17] = "Player1"; // Slot names cap at 16 characters + terminator
+    char slotServer[128] = "archipelago.gg:38281";
+    char slotPassword[128] = ""; // No password cap?
 
     char say[256] = ""; // Client -> Server
     std::string APLog = ""; // Various memory management concerns.
@@ -38,6 +40,17 @@ namespace APClient
 
     int &progHPHave = APDeathLink::HPnumerator;
     int &progHPTotal = APDeathLink::HPdenominator;
+
+    void config(toml::v3::ex::parse_result& data)
+    {
+        std::string config_name = data["slot_name"].value_or("Player1");
+        std::string config_server = data["slot_server"].value_or("archipelago.gg:38281");
+        std::string config_pass = data["slot_password"].value_or("");
+
+        strncpy(slotName, config_name.c_str(), config_name.size() + 1);
+        strncpy(slotServer, config_server.c_str(), config_server.size() + 1);
+        strncpy(slotPassword, config_pass.c_str(), config_pass.size() + 1);
+    }
 
     void connect()
     {
