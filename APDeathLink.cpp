@@ -225,7 +225,7 @@ namespace APDeathLink
             }
 
             ImGui::SameLine();
-            ImGui::Text("Temporary HP: +%d", HPtemp);
+            ImGui::Text("Temporary HP: %d+%d", HPreceived, HPtemp);
 
             ImGui::SameLine();
             HelpMarker("Temporarily increase available chunk count.\nResets when the next one is received.");
