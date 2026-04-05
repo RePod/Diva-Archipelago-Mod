@@ -104,7 +104,7 @@ namespace APIDHandler
 			ImGui::Text("In logic: %d |", availableLocs);
 
 			ImGui::SameLine();
-			ImGui::Text("Go mode: No");
+			ImGui::Text("Go mode: ?");
 
 			if (ImGui::Checkbox("Freeplay", &freeplay))
 				APReload::run();
@@ -141,7 +141,13 @@ namespace APIDHandler
 						ImGui::TableSetColumnIndex(0);
 
 						std::string label = (available > 0) ? std::to_string(available) : " ";
-						ImGui::Text("   %s   ", label.c_str());
+						if (songID == APClient::victoryID / 10)
+						{
+							ImGui::Text("GO MODE");
+						}
+						else {
+							ImGui::Text("   %s   ", label.c_str());
+						}
 
 						if (APClient::devMode)
 						{

@@ -343,7 +343,7 @@ namespace APClient
 
     void ImGuiTab()
     {
-        if (ImGui::BeginTabItem("APClient")) {
+        if (ImGui::BeginTabItem("Client")) {
             if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
             {
                 ImGui::InputText("Slot Name", slotName, sizeof(slotName));
