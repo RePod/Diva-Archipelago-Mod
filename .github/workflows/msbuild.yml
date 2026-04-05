@@ -27,11 +27,11 @@ jobs:
 
     - name: Configure APCpp
       working-directory: ./Dependencies/APCpp
-      run: cmake -DCMAKE_BUILD_TYPE=Release -S . -B build
+      run: cmake -S . -B build
 
     - name: Build APCpp
       working-directory: ./Dependencies/APCpp
-      run: cmake --build out
+      run: cmake --build out --config Release
 
     - name: Build Archipelago
       working-directory: ${{env.GITHUB_WORKSPACE}}
