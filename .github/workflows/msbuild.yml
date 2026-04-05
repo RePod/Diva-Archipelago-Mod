@@ -27,11 +27,17 @@ jobs:
 
     - name: Configure APCpp
       working-directory: ./Dependencies/APCpp
-      run: cmake -DCMAKE_BUILD_TYPE=Release -S . -B out
+      run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_CONFIGURATION}} -S . -B out
 
     - name: Build APCpp
       working-directory: ./Dependencies/APCpp
-      run: cmake --build out --config Release
+      run: cmake --build out --config ${{env.BUILD_CONFIGURATION}}
+      
+    - name: Artifact APCpp
+      uses: actions/upload-artifact@v6
+      with:
+        name: artifact-mod
+        path: .\Dependencies\APCpp\out\${{env.BUILD_CONFIGURATION}}\*
 
     - name: Build Archipelago
       working-directory: ${{env.GITHUB_WORKSPACE}}
