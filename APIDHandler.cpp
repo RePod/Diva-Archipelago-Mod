@@ -37,7 +37,7 @@ namespace APIDHandler
 
 	bool check(std::string& line)
 	{
-		if (reload_needed || AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated || missingIDs.size() == 0 || line.find("pv_") != 0)
+		if (reload_needed /*|| AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated*/ || missingIDs.size() == 0 || line.find("pv_") != 0)
 			return true;
 
 		size_t diff_pos = line.find(".difficulty.");
@@ -161,7 +161,14 @@ namespace APIDHandler
 						}
 
 						ImGui::TableSetColumnIndex(1);
-						ImGui::Text(item_ap_id_to_name[songID * 10].c_str());
+						auto it = item_ap_id_to_name.find(songID * 10);
+						if (it != item_ap_id_to_name.end())
+						{
+							ImGui::Text("%s", it->second.c_str());
+						}
+						else {
+							ImGui::Text("ID#%d (not in/load a datapackage)", songID);
+						}
 
 						ImGui::PopID();
 					}

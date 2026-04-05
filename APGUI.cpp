@@ -140,7 +140,7 @@ namespace APGUI
                     "Songs can be cleared on any available difficulty for the same checks.\n\n"
                     "Current reload key: " + (std::string)data["reload_key"].value_or("F7");
 
-                ImGui::Text(warn.c_str());
+                ImGui::Text("%s", warn.c_str());
 
                 ImGui::Separator();
                 if (ImGui::Button("I don't remember installing this mod"))
@@ -167,7 +167,7 @@ namespace APGUI
 
             ImGui::SameLine();
             std::string reloadKey = "Reload key: " + APReload::reloadVal;
-            ImGui::Text(reloadKey.c_str());
+            ImGui::Text("%s", reloadKey.c_str());
 
             ImGui::Separator();
 
@@ -187,6 +187,35 @@ namespace APGUI
                 }
 
                 ImGui::EndPopup();
+            }
+
+            if (devMode)
+            {
+                if (ImGui::Button("Sample Random IDs"))
+                {
+                    APClient::seedIDs.clear();
+                    APClient::seedIDs.push_back(0); // Prevent seedIDs == recvIDs
+                    APClient::recvIDs.clear();
+
+                    // This doesn't need good random. The biggest issue it will have is picking a valid ID.
+                    for (int i = 0; i < 500; ++i)
+                    {
+                        int id = rand() % 10000 + 1;
+                        APClient::seedIDs.push_back(id);
+
+                        if (rand() % (rand() % 10 + 1) == 1)
+                            APClient::PushRecvID(id);
+                    }
+
+                    APReload::run();
+                }
+
+                ImGui::SameLine();
+                HelpMarker("Fills the IDHandler with \"random\" IDs up to 10000.\n"
+                            "Try toggling Freeplay from the Tracker tab.");
+
+                ImGui::SameLine();
+                ImGui::Text("%d/%d recv/seed", APClient::recvIDs.size(), APClient::seedIDs.size());
             }
 
             ImGui::EndTabItem();

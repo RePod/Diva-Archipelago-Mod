@@ -15,6 +15,7 @@
 #include <windows.h>
 #include "APLogger.h"
 #include "Helpers.h"
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>

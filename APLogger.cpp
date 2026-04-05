@@ -1,6 +1,5 @@
 #include "APLogger.h"
 #include "pch.h"
-#include <ctime>
 #include <stdarg.h>
 
 namespace APLogger
