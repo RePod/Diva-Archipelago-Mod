@@ -8,7 +8,7 @@ namespace APReload
     HWND hGameWindow;
     std::string reloadVal;
     int reloadKeyCode;
-    int reloadDelay;
+    int reloadDelay = 10;
 
     void config(toml::v3::ex::parse_result& data)
     {
@@ -18,7 +18,7 @@ namespace APReload
         APLogger::print("reload_key: %s (0x%x)\n",
                          reloadVal, static_cast<int>(reloadKeyCode));
 
-        reloadDelay = std::clamp(data["reload_delay"].value_or(10), 1, 10) * 100;
+        reloadDelay = std::clamp(data["reload_delay"].value_or(10), 1, 10);
         APLogger::print("reload_delay: %ims\n", reloadDelay);
 
         // DATA_TEST patch thanks to Debug mod: samyuu, nastys, vixen256, korenkonder, skyth
@@ -65,7 +65,7 @@ namespace APReload
 
     void sleepStartup()
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(reloadDelay));
+        std::this_thread::sleep_for(std::chrono::milliseconds(reloadDelay * 100));
         ChangeGameSubState(0, 1);
     }
 

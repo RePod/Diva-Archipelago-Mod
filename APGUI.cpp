@@ -12,6 +12,7 @@ namespace APGUI
     bool autohide = true; // Hide Client during gameplay
     bool showImGuiDemo = false;
     bool &devMode = APClient::devMode;
+    int &reloadDelay = APReload::reloadDelay;
 
     bool g_ImGuiInitialized = false;
     bool firstFrame = true;
@@ -171,6 +172,7 @@ namespace APGUI
             ImGui::Separator();
 
             ImGui::Checkbox("Hide Client during gameplay", &autohide);
+            ImGui::SliderInt("Reload delay", &reloadDelay, 1, 10);
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
 
             if (ImGui::Checkbox("AP Developer Mode", &devMode))

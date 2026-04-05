@@ -52,6 +52,6 @@ jobs:
     - name: Artifact
       uses: actions/upload-artifact@v6
       with:
-        name: artifact-mod-${{env.BUILD_CONFIGURATION}}
+        name: artifact-ArchipelagoMod-${{env.BUILD_CONFIGURATION}}
         path: .\dist\*
-        compression-level: 9 # not my compute. counteract debug size.
+        compression-level: 9 # not my compute.
