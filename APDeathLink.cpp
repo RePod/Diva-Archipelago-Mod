@@ -216,6 +216,7 @@ namespace APDeathLink
                 deathLinked = true;
                 setHP(0);
             }
+
             ImGui::SameLine();
             if (ImGui::Button("+ No Fail/Protected"))
             {
@@ -223,6 +224,11 @@ namespace APDeathLink
                 WRITE_MEMORY(0x1412C2330 + 0x2D31D, bool, 0);
                 setHP(0);
             }
+
+            ImGui::SameLine();
+            ImGui::Text("Deathlinked: %d", deathLinked);
+            ImGui::SameLine();
+            HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
 
             ImGui::EndTabItem();
         }
