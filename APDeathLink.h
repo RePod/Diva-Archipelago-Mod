@@ -8,6 +8,8 @@ namespace fs = std::filesystem;
 namespace APDeathLink
 {
 	extern bool safetyExpired;
+	extern int HPreceived;
+	extern int HPtemp;
 	extern int HPnumerator;
 	extern int HPdenominator;
 	extern bool deathLinked;

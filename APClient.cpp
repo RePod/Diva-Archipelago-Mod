@@ -38,7 +38,8 @@ namespace APClient
     int leekHave = 0;
     int leekNeed = 0;
 
-    int &progHPHave = APDeathLink::HPnumerator;
+    int &progHPReceived = APDeathLink::HPreceived;
+    int &progHPtemp = APDeathLink::HPtemp;
     int &progHPTotal = APDeathLink::HPdenominator;
 
     void config(toml::v3::ex::parse_result& data)
@@ -102,7 +103,8 @@ namespace APClient
         leekHave = 0;
         leekNeed = 0;
 
-        progHPHave = 1;
+        progHPReceived = 1;
+        progHPtemp = 0;
         progHPTotal = 1;
 
         APIDHandler::reset();
@@ -151,7 +153,8 @@ namespace APClient
             case 2:
                 break; // Filler
             case 3:
-                progHPHave += 1;
+                progHPtemp = 0;
+                progHPReceived += 1;
                 break;
             case 4:
                 APTraps::touchHidden();

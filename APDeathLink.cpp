@@ -15,7 +15,9 @@ namespace APDeathLink
     bool deathLinked = false; // Who wants to know?
     float lastDeathLink = 0.0f; // Compared against APDeathLink::safety
     float lastCheckedHP = 0.0f; // HP: For delta time against APDeathLink::DivaGameTimer
-    int HPnumerator = 1; // Current HP chunks received
+    int HPreceived = 1; // Current HP chunks received
+    int HPtemp = 0; // Temporarily added chunks
+    int HPnumerator = 1; // Received and potentially temp extras
     int HPdenominator = 1; // Total HP chunks
     int HPprefloor = 76; // 0-255, default safety HP. used for rolling safety bar.
     int HPprepercent = 30; // 0-100, default safety bar percentage. used for rolling safety bar.
@@ -55,6 +57,7 @@ namespace APDeathLink
     {
         bool changed = true;
 
+        HPnumerator = HPreceived + HPtemp;
         HPnumerator = min(HPnumerator, HPdenominator);
 
         if (changed) {
@@ -202,6 +205,15 @@ namespace APDeathLink
             ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f), buf);
             ImGui::SameLine();
             ImGui::Text("Progressive HP");
+
+            if (ImGui::Button("Temporary +1")) {
+                HPtemp += 1;
+                APLogger::print("%d\n", HPtemp);
+            }
+            ImGui::SameLine();
+            HelpMarker("Temporarily increase available chunk count.\nResets when the next one is received.");
+
+            ImGui::Separator();
 
             ImGui::SliderInt("DeathLink Percent", &percent, 0, 100, "%d%%");
             ImGui::SameLine();
