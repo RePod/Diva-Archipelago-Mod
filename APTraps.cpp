@@ -1,5 +1,4 @@
 #include "APTraps.h"
-#include "Diva.h"
 
 namespace APTraps
 {

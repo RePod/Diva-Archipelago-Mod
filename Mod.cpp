@@ -176,7 +176,7 @@ HOOK(void, __fastcall, _ChangeGameSubState, 0x1527E49E0, int state, int substate
         APIDHandler::unlock();
 
         if (reload_was_needed) {
-            if (APIDHandler::toggleIDs.size() > 0) {
+            if (APClient::recvIDs.size() > 0) {
                 APLogger::print("Forcing needed reload (have IDs)\n");
                 original_ChangeGameSubState(0, 1);
                 return;

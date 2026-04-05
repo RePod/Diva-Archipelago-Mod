@@ -1,4 +1,5 @@
 #pragma warning( disable : 4244 )
+#include "APClient.h"
 #include "APDeathLink.h"
 
 namespace APDeathLink
@@ -13,8 +14,10 @@ namespace APDeathLink
 
     // Internal
     bool deathLinked = false; // Who wants to know?
+
     float lastDeathLink = 0.0f; // Compared against APDeathLink::safety
     float lastCheckedHP = 0.0f; // HP: For delta time against APDeathLink::DivaGameTimer
+
     int HPreceived = 1; // Current HP chunks received
     int HPtemp = 0; // Temporarily added chunks
     int HPnumerator = 1; // Received and potentially temp extras
@@ -67,22 +70,21 @@ namespace APDeathLink
             changed = true;
         }
 
-        if (changed) {
-            if (HPdenominator == HPnumerator) {
-                prog_hp_reset();
-                return;
-            }
+        if (HPnumerator >= HPdenominator) {
+            prog_hp_reset();
+            return;
+        }
 
-            // Get portion of HP
-            int available = (255.0f / (float)HPdenominator) * HPnumerator;
-            available = std::clamp((int)available, 1, 255);
+        // Get portion of HP
+        int available = (255.0f / (float)HPdenominator) * HPnumerator;
+        available = std::clamp((int)available, 1, 255);
 
-            HPfloor = 255 - available;
-            HPpercent = ((float)HPfloor / 255.0f) * 100.0f - 1;
+        HPfloor = 255 - available;
+        HPpercent = ((float)HPfloor / 255.0f) * 100.0f - 1;
 
+        if (changed)
             APLogger::print("[%6.2f] DeathLinkHP < %i / %i = %i%% (%i HP)\n",
                 lastCheckedHP, HPnumerator, HPdenominator, HPpercent, HPfloor);
-        }
 
         if (!HPengaged) {
             // Roll 6% behind current HP. One day find the HP bar % address.
@@ -204,7 +206,7 @@ namespace APDeathLink
 
     void ImGuiTab()
     {
-        if (ImGui::BeginTabItem("DeathLink")) {
+        if (ImGui::BeginTabItem("Death Link")) {
             float progress = (float)min(HPdenominator, (HPdenominator - HPnumerator)) / (float)HPdenominator;
             char buf[8];
             sprintf(buf, "%d / %d", HPnumerator, HPdenominator);
@@ -230,32 +232,35 @@ namespace APDeathLink
 
             ImGui::Separator();
 
-            ImGui::SliderInt("DeathLink Percent", &percent, 0, 100, "%d%%");
+            ImGui::SliderInt("Death Link Percent", &percent, 0, 100, "%d%%");
             ImGui::SameLine();
             HelpMarker("Percent of max HP to lose on receive.\n<100 for non-lethal");
 
-            ImGui::SliderFloat("DeathLink Safety", &safety, 0.0f, 30.0f, "%.1f seconds");
+            ImGui::SliderFloat("Death Link Safety", &safety, 0.0f, 30.0f, "%.1f seconds");
             ImGui::SameLine();
             HelpMarker("Seconds after receiving where dying does not send one out.");
 
-            if (ImGui::Button("Die"))
+            if (APClient::devMode)
             {
-                deathLinked = true;
-                setHP(0);
-            }
+                if (ImGui::Button("Die"))
+                {
+                    deathLinked = true;
+                    setHP(0);
+                }
 
-            ImGui::SameLine();
-            if (ImGui::Button("+ No Fail/Protected"))
-            {
-                deathLinked = true;
-                WRITE_MEMORY(0x1412C2330 + 0x2D31D, bool, 0);
-                setHP(0);
-            }
+                ImGui::SameLine();
+                if (ImGui::Button("+ No Fail/Protected"))
+                {
+                    deathLinked = true;
+                    WRITE_MEMORY(0x1412C2330 + 0x2D31D, bool, 0);
+                    setHP(0);
+                }
 
-            ImGui::SameLine();
-            ImGui::Text("Deathlinked: %d", deathLinked);
-            ImGui::SameLine();
-            HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
+                ImGui::SameLine();
+                ImGui::Text("Deathlinked: %d", deathLinked);
+                ImGui::SameLine();
+                HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
+            }
 
             ImGui::EndTabItem();
         }

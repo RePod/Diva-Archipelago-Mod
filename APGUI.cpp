@@ -1,12 +1,18 @@
 #include "APClient.h"
 #include "APDeathLink.h"
 #include "APGUI.h"
+#include "APIDHandler.h"
 #include "APReload.h"
 #include "APTraps.h"
 
 namespace APGUI
 {
+    // Configurables
+
+    bool autohide = true; // Hide Client during gameplay
     bool showImGuiDemo = false;
+    bool &devMode = APClient::devMode;
+
     bool g_ImGuiInitialized = false;
     bool firstFrame = true;
     bool prevUnfocused = false;
@@ -17,8 +23,6 @@ namespace APGUI
     fs::path ConfigTOML = LocalPath / "config.toml";
     fs::path reload_file = LocalPath / ".reload_warning";
     bool showWarning = true;
-
-    bool autohide = true; // Hide Client during gameplay
 
     ID3D11Device* g_Device = nullptr;
     ID3D11DeviceContext* g_Context = nullptr;
@@ -81,15 +85,17 @@ namespace APGUI
         if (showImGuiDemo)
             ImGui::ShowDemoWindow();
 
-        ImGui::Begin("Archipelago Mod", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing);
+        ImGui::Begin("Archipelago Mod###APClient", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing);
 
         if (ImGui::BeginTabBar("APTabs")) {
             APClient::ImGuiTab();
-            APGUI::ImGuiTab();
+            APIDHandler::ImGuiTab();
             APDeathLink::ImGuiTab();
             APTraps::ImGuiTab();
 
             //APLogger::ImGuiTab();
+
+            APGUI::ImGuiTab();
 
             ImGui::EndTabBar();
         }
@@ -155,7 +161,7 @@ namespace APGUI
 
     void ImGuiTab()
     {
-        if (ImGui::BeginTabItem("Settings")) {
+        if (ImGui::BeginTabItem("Advanced")) {
             if (ImGui::Button("Reload"))
                 APReload::run();
 
@@ -165,8 +171,22 @@ namespace APGUI
 
             ImGui::Separator();
 
-            ImGui::Checkbox("Hide during gameplay", &autohide);
+            ImGui::Checkbox("Hide Client during gameplay", &autohide);
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
+
+            if (ImGui::Checkbox("AP Developer Mode", &devMode))
+                devMode = false;
+            if (ImGui::BeginPopupContextItem("##xx"))
+            {
+                if (ImGui::MenuItem("Are you sure?##xx"))
+                {
+                    devMode = !devMode;
+                    if (!GetConsoleWindow())
+                        AllocConsole();
+                }
+
+                ImGui::EndPopup();
+            }
 
             ImGui::EndTabItem();
         }

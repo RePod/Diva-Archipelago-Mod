@@ -1,5 +1,6 @@
 #include "APClient.h"
 #include "APDeathLink.h"
+#include "APGUI.h"
 #include "APIDHandler.h"
 #include "APReload.h"
 #include "APTraps.h"
@@ -7,6 +8,8 @@
 namespace APClient
 {
     const char* GameName = "Hatsune Miku Project Diva Mega Mix+";
+
+    bool devMode = false;
 
     // Any char where a string makes sense is for ImGui::InputText without using ImGui's stdlib string.
 
@@ -38,16 +41,17 @@ namespace APClient
     nlohmann::json_abi_v3_12_0::json slotData;
     std::vector<int> seedIDs = {}; // Song IDs that are part of the seed
     std::vector<int> recvIDs = {}; // Song IDs received as items
+    std::vector<int> missingIDs = {}; // Song IDs not yet received
     std::vector<int> CheckedLocations = {}; // Love is War [1] = 10, 11.
 
     // TODO: Relocate?
     int clearGrade = 2;
     char diffs[5][10] = {"Cheap", "Standard", "Great", "Excellent", "Perfect"};
 
-    int victoryID = 1; // The base ID, not the AP Item/Loc ID. (confusion ensues)
+    int victoryID = 0; // The AP Item/Loc ID. (confusion ensues)
 
     int leekHave = 0;
-    int leekNeed = 1;
+    int leekNeed = 0;
 
     int &progHPReceived = APDeathLink::HPreceived;
     int &progHPtemp = APDeathLink::HPtemp;
@@ -111,10 +115,10 @@ namespace APClient
         APLog = "";
 
         clearGrade = 2;
-        //victoryID = 1;
+        victoryID = 0;
 
         leekHave = 0;
-        leekNeed = 1;
+        leekNeed = 0;
 
         progHPReceived = 1;
         progHPtemp = 0;
@@ -158,18 +162,23 @@ namespace APClient
 
         auto final = slotData["finalSongIDs"];
         if (final.is_array())
+        {
             seedIDs = final.get<std::vector<int>>();
+            std::sort(seedIDs.begin(), seedIDs.end());
+        }
 
         // APCpp provides easy int callbacks, but we're already here...
 
-        victoryID = slotData.value("victoryID", 10) / 10;
+        victoryID = slotData.value("victoryID", 0);
         clearGrade = slotData.value("scoreGradeNeeded", 2);
         leekNeed = slotData.value("leekWinCount", 1);
-        progHPTotal = 1 + slotData.value("progHP", 1);
+        progHPTotal = 1 + slotData.value("progHP", 0); // The value is how many are in the pool, so +1.
 
         // TODO: Remaps
 
         APReload::run();
+        APTraps::reset();
+        UpdateMissing();
     }
 
     void ItemClear()
@@ -183,11 +192,6 @@ namespace APClient
         switch (itemID) {
             case 1:
                 leekHave += 1;
-                if (leekHave >= leekNeed)
-                {
-                    recvIDs.push_back(victoryID);
-                    APIDHandler::add(victoryID);
-                }
                 break;
             case 2:
                 break; // Filler
@@ -206,11 +210,32 @@ namespace APClient
                 break;
             default:
                 if (itemID >= 10)
-                {
-                    recvIDs.push_back(itemID / 10);
-                    APIDHandler::add(itemID / 10);
-                }
+                    PushRecvID(itemID / 10);
         }
+    }
+
+    void PushRecvID(int songID)
+    {
+        if (std::find(recvIDs.begin(), recvIDs.end(), songID) != recvIDs.end())
+            return;
+
+        recvIDs.push_back(songID);
+        std::sort(recvIDs.begin(), recvIDs.end());
+
+        UpdateMissing();
+    }
+
+    void UpdateMissing()
+    {
+        if (victoryID != 0 && leekHave >= leekNeed)
+            PushRecvID(victoryID / 10);
+
+        missingIDs.clear();
+        std::set_symmetric_difference(
+            seedIDs.begin(), seedIDs.end(),
+            recvIDs.begin(), recvIDs.end(),
+            std::back_inserter(missingIDs)
+        );
     }
 
     void LocationChecked(int64_t locationID)
@@ -220,7 +245,7 @@ namespace APClient
 
     void LocationSend(int64_t pvID)
     {
-        if (pvID == victoryID)
+        if (pvID == victoryID / 10)
         {
             AP_StoryComplete();
         }
@@ -372,39 +397,11 @@ namespace APClient
                 ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
 
                 // TODO: Relocate
-                std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID * 10] + "\n"
+                std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID] + "\n"
                                       "Clear grade needed: " + (std::string)diffs[clearGrade - 1];
 
                 ImGui::SameLine();
                 HelpMarker(goalTip.c_str());
-            }
-
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Datapackage")) {
-            if (ImGui::BeginChild("tableContainer", ImVec2(0, 300))) {
-                if (ImGui::BeginTable("tableDatapackage", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
-                {
-                    ImGui::TableSetupColumn("ID");
-                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-                    ImGui::TableHeadersRow();
-
-                    for (const auto& [itemID, itemName] : item_ap_id_to_name) {
-                        /*if (itemID != victoryID * 10)
-                            continue;*/
-
-                        ImGui::TableNextRow();
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::Text("%d", itemID);
-                        ImGui::TableSetColumnIndex(1);
-                        ImGui::Text(itemName.c_str());
-                    }
-
-                    ImGui::EndTable();
-                }
-
-                ImGui::EndChild();
             }
 
             ImGui::EndTabItem();
