@@ -1,6 +1,7 @@
 #include "APClient.h"
 #include "APDeathLink.h"
 #include "APGUI.h"
+#include "APReload.h"
 #include "APTraps.h"
 
 namespace APGUI
@@ -155,6 +156,15 @@ namespace APGUI
     void ImGuiTab()
     {
         if (ImGui::BeginTabItem("Settings")) {
+            if (ImGui::Button("Reload"))
+                APReload::run();
+
+            ImGui::SameLine();
+            std::string reloadKey = "Reload key: " + APReload::reloadVal;
+            ImGui::Text(reloadKey.c_str());
+
+            ImGui::Separator();
+
             ImGui::Checkbox("Hide during gameplay", &autohide);
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
 

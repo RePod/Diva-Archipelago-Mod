@@ -6,6 +6,8 @@
 
 namespace APReload
 {
+	extern std::string reloadVal;
+
 	void config(toml::v3::ex::parse_result& data);
 	void scan();
 	void run();
