@@ -206,10 +206,18 @@ namespace APDeathLink
             ImGui::SameLine();
             ImGui::Text("Progressive HP");
 
-            if (ImGui::Button("Temporary +1")) {
-                HPtemp += 1;
-                APLogger::print("%d\n", HPtemp);
+            if (ImGui::Button("Reset")) {
+                HPtemp = 0;
             }
+
+            ImGui::SameLine();
+            if (ImGui::Button("+1")) {
+                HPtemp += 1;
+            }
+
+            ImGui::SameLine();
+            ImGui::Text("Temporary HP: +%d", HPtemp);
+
             ImGui::SameLine();
             HelpMarker("Temporarily increase available chunk count.\nResets when the next one is received.");
 
