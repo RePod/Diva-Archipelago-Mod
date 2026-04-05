@@ -18,6 +18,8 @@ namespace APClient
     void ItemRecv(int64_t, bool);
     void LocationChecked(int64_t);
     void LocationSend(int64_t pvID);
+
+    void LogAppend(const std::string& text);
     void CheckMessages();
 
     void RecvDeath(std::string, std::string);

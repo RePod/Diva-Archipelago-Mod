@@ -14,6 +14,7 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 #include <windows.h>
 #include "APLogger.h"
+#include "Diva.h"
 #include "Helpers.h"
 #include <filesystem>
 #include <fstream>

@@ -29,6 +29,8 @@ namespace APClient
     bool autoRemove = true;
 
     int clearGrade = 2; // Standard
+    char diffs[5][10] = {"Cheap", "Standard", "Great", "Excellent", "Perfect"};
+
     int victoryID = 0;
 
     int leekHave = 0;
@@ -171,6 +173,13 @@ namespace APClient
         }
     }
 
+    void LogAppend(const std::string &text)
+    {
+        if (APLog.length() > 0)
+            APLog += "\n";
+        APLog += text;
+    }
+
     void CheckMessages()
     {
         if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
@@ -180,9 +189,7 @@ namespace APClient
             AP_Message* msg = AP_GetLatestMessage();
             APLogger::print("%s\n", msg->text.c_str());
 
-            if (APLog.length() > 0)
-                APLog += "\n";
-            APLog += msg->text;
+            LogAppend(msg->text);
 
             AP_ClearLatestMessage();
         }
@@ -317,6 +324,13 @@ namespace APClient
 
                 ImGui::SameLine();
                 ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
+
+                // TODO: Relocate
+                static std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID * 10] +
+                                             "\nClear grade needed: " + (std::string)diffs[clearGrade - 1];
+
+                ImGui::SameLine();
+                HelpMarker(goalTip.c_str());
             }
 
             ImGui::EndTabItem();
