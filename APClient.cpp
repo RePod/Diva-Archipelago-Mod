@@ -19,24 +19,35 @@ namespace APClient
 
     // TODO: ID remaps
     AP_RoomInfo RoomInfo;
+
     std::string DatapackageChecksum;
     bool datapackageLoaded = false;
 
     std::filesystem::path LocalPath = std::filesystem::current_path();
+
+    // Datapackage
+
     nlohmann::json_abi_v3_12_0::json datapackageJSON;
     std::unordered_map<uint32_t, std::string> item_ap_id_to_name;
+
+    // Item and location tracking
+
+    std::string DataRequestRaw; // Raw should always be a (JSON) string.
+    AP_GetServerDataRequest request;
+
+    nlohmann::json_abi_v3_12_0::json slotData;
+    std::vector<int> seedIDs = {}; // Song IDs that are part of the seed
+    std::vector<int> recvIDs = {}; // Song IDs received as items
     std::vector<int> CheckedLocations = {}; // Love is War [1] = 10, 11.
 
     // TODO: Relocate?
-    bool autoRemove = true;
-
-    int clearGrade = 2; // Standard
+    int clearGrade = 2;
     char diffs[5][10] = {"Cheap", "Standard", "Great", "Excellent", "Perfect"};
 
-    int victoryID = 0;
+    int victoryID = 1; // The base ID, not the AP Item/Loc ID. (confusion ensues)
 
     int leekHave = 0;
-    int leekNeed = 0;
+    int leekNeed = 1;
 
     int &progHPReceived = APDeathLink::HPreceived;
     int &progHPtemp = APDeathLink::HPtemp;
@@ -69,11 +80,6 @@ namespace APClient
             AP_SetItemRecvCallback(ItemRecv);
             AP_SetLocationCheckedCallback(LocationChecked);
 
-            AP_RegisterSlotDataIntCallback("victoryID", FromSlot_victoryID);
-            AP_RegisterSlotDataIntCallback("scoreGradeNeeded", FromSlot_scoreGradeNeeded);
-            AP_RegisterSlotDataIntCallback("leekWinCount", FromSlot_leekWinCount);
-            AP_RegisterSlotDataIntCallback("progHP", FromSlot_progHP);
-
             // int slot data
             // autoRemove bool / Handle internally
             // deathLink -> death_link type? / Needs a rename for APCpp
@@ -92,16 +98,23 @@ namespace APClient
     void reset()
     {
         datapackageLoaded = false;
+
+        slotData = nullptr;
+        request.status = AP_RequestStatus::Pending;
+        DataRequestRaw.clear();
+
+        seedIDs.clear();
+        recvIDs.clear();
         CheckedLocations.clear();
 
         say[0] = '\0';
         APLog = "";
 
         clearGrade = 2;
-        victoryID = 0;
+        //victoryID = 1;
 
         leekHave = 0;
-        leekNeed = 0;
+        leekNeed = 1;
 
         progHPReceived = 1;
         progHPtemp = 0;
@@ -110,31 +123,54 @@ namespace APClient
         APIDHandler::reset();
     }
 
-    // Slot data callbacks
-
-    void FromSlot_victoryID(int val)
-    {
-        // TODO: Not multiply in the APWorld
-        victoryID = val / 10;
-    }
-
-    void FromSlot_scoreGradeNeeded(int val)
-    {
-        clearGrade = val;
-    }
-
-    void FromSlot_leekWinCount(int val)
-    {
-        APReload::run();
-        leekNeed = val;
-    }
-
-    void FromSlot_progHP(int val)
-    {
-        progHPTotal = val;
-    }
-
     // Server messages
+
+    AP_RequestStatus ServerDataRequest_Raw(std::string key)
+    {
+        if (request.status == AP_RequestStatus::Done || request.status == AP_RequestStatus::Error)
+            return (AP_RequestStatus)request.status;
+
+        request.key = key;
+        request.value = &DataRequestRaw;
+        request.type = AP_DataType::Raw;
+        request.status = AP_RequestStatus::Pending;
+
+        AP_GetServerData(&request);
+
+        return AP_RequestStatus::Pending;
+    }
+
+    void GetSlotData()
+    {
+        if (slotData.is_null() && request.status == AP_RequestStatus::Pending)
+        {
+            APLogger::print("GetSlotData\n");
+            ServerDataRequest_Raw("_read_slot_data_" + std::to_string(AP_GetPlayerID()));
+            return;
+        }
+
+        if (!slotData.is_null() || !&DataRequestRaw)
+            return;
+
+        // TODO: try catch?
+
+        slotData = nlohmann::json::parse(DataRequestRaw);
+
+        auto final = slotData["finalSongIDs"];
+        if (final.is_array())
+            seedIDs = final.get<std::vector<int>>();
+
+        // APCpp provides easy int callbacks, but we're already here...
+
+        victoryID = slotData.value("victoryID", 10) / 10;
+        clearGrade = slotData.value("scoreGradeNeeded", 2);
+        leekNeed = slotData.value("leekWinCount", 1);
+        progHPTotal = 1 + slotData.value("progHP", 1);
+
+        // TODO: Remaps
+
+        APReload::run();
+    }
 
     void ItemClear()
     {
@@ -148,7 +184,10 @@ namespace APClient
             case 1:
                 leekHave += 1;
                 if (leekHave >= leekNeed)
+                {
+                    recvIDs.push_back(victoryID);
                     APIDHandler::add(victoryID);
+                }
                 break;
             case 2:
                 break; // Filler
@@ -167,7 +206,10 @@ namespace APClient
                 break;
             default:
                 if (itemID >= 10)
+                {
+                    recvIDs.push_back(itemID / 10);
                     APIDHandler::add(itemID / 10);
+                }
         }
     }
 
@@ -184,8 +226,8 @@ namespace APClient
         }
         else {
             // Song locations are in pairs
-            AP_SendItem(pvID * 10);
-            AP_SendItem((pvID * 10) + 1);
+            std::set<int64_t> locs{ pvID * 10, (pvID * 10) + 1 };
+            AP_SendItem(locs);
         }
     }
 
@@ -200,6 +242,10 @@ namespace APClient
     {
         if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
             return;
+
+        // No potential crashes here.
+        LoadDatapackage();
+        GetSlotData();
 
         if (AP_IsMessagePending()) {
             AP_Message* msg = AP_GetLatestMessage();
@@ -291,8 +337,6 @@ namespace APClient
             }
             else
             {
-                LoadDatapackage();
-
                 if (ImGui::Button("Disconnect"))
                 {
                     reset();
@@ -305,20 +349,6 @@ namespace APClient
                 ImGui::SameLine();
                 if (ImGui::Button("Reload"))
                     APReload::run();
-
-                /*ImGui::SameLine();
-                ImGui::Text("IDHandler: %d items/songs", APIDHandler::toggleIDs.size());*/
-
-                /*static int pvID = 1;
-                if (ImGui::Button("Send ID"))
-                {
-                    LocationSend(pvID);
-                }
-                ImGui::SameLine();
-                ImGui::InputInt("##sendID", &pvID, 1, INT_MAX);*/
-
-                /*if (ImGui::Button("Send Death"))
-                    SendDeath();*/
 
                 // TODO: Switch to TextWrapped, smart auto scroll to bottom
                 ImGui::InputTextMultiline("##APlog", (char *)APLog.c_str(), sizeof(APLog), ImVec2(ImGui::GetContentRegionAvail().x, 0), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_WordWrap);
@@ -342,8 +372,8 @@ namespace APClient
                 ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
 
                 // TODO: Relocate
-                static std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID * 10] +
-                                             "\nClear grade needed: " + (std::string)diffs[clearGrade - 1];
+                std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID * 10] + "\n"
+                                      "Clear grade needed: " + (std::string)diffs[clearGrade - 1];
 
                 ImGui::SameLine();
                 HelpMarker(goalTip.c_str());
@@ -352,7 +382,7 @@ namespace APClient
             ImGui::EndTabItem();
         }
 
-        /*if (ImGui::BeginTabItem("Datapackage")) {
+        if (ImGui::BeginTabItem("Datapackage")) {
             if (ImGui::BeginChild("tableContainer", ImVec2(0, 300))) {
                 if (ImGui::BeginTable("tableDatapackage", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
                 {
@@ -361,6 +391,9 @@ namespace APClient
                     ImGui::TableHeadersRow();
 
                     for (const auto& [itemID, itemName] : item_ap_id_to_name) {
+                        /*if (itemID != victoryID * 10)
+                            continue;*/
+
                         ImGui::TableNextRow();
                         ImGui::TableSetColumnIndex(0);
                         ImGui::Text("%d", itemID);
@@ -375,6 +408,6 @@ namespace APClient
             }
 
             ImGui::EndTabItem();
-        }*/
+        }
     }
 }

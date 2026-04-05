@@ -11,9 +11,8 @@ namespace APClient
     void reset();
 
     void FromSlot_victoryID(int);
-    void FromSlot_scoreGradeNeeded(int);
-    void FromSlot_leekWinCount(int);
-    void FromSlot_progHP(int);
+    AP_RequestStatus ServerDataRequest_Raw(std::string);
+    void GetSlotData();
 
     void ItemClear();
     void ItemRecv(int64_t, bool);
