@@ -136,8 +136,9 @@ namespace APGUI
             {
                 ImGui::SetWindowFocus("Archipelago Mod - First Run");
 
-                std::string warn = "After connecting, press the reload key on the song list to get new songs.\n"
+                std::string warn = "After connecting, press the reload key while on the song list to get new songs.\n"
                     "Songs can be cleared on any available difficulty for the same checks.\n\n"
+                    "Defaults for some options can be configured in the mod's config.toml\n\n"
                     "Current reload key: " + (std::string)data["reload_key"].value_or("F7");
 
                 ImGui::Text("%s", warn.c_str());
