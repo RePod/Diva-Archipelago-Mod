@@ -143,7 +143,7 @@ namespace APIDHandler
 						std::string label = (available > 0) ? std::to_string(available) : " ";
 						if (songID == APClient::victoryID / 10)
 						{
-							ImGui::Text("GO MODE");
+							ImGui::Text(" GOAL! ");
 						}
 						else {
 							ImGui::Text("   %s   ", label.c_str());
