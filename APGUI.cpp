@@ -123,7 +123,6 @@ namespace APGUI
     bool warning()
     {
         if (!showWarning || fs::exists(reload_file))
-            showWarning = false;
             return false;
 
         try {
