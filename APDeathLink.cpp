@@ -55,10 +55,17 @@ namespace APDeathLink
 
     void prog_hp_update()
     {
-        bool changed = true;
+        bool changed = false;
+        static int prevHP = HPnumerator;
 
         HPnumerator = HPreceived + HPtemp;
         HPnumerator = min(HPnumerator, HPdenominator);
+
+        if (HPnumerator != prevHP)
+        {
+            prevHP = HPnumerator;
+            changed = true;
+        }
 
         if (changed) {
             if (HPdenominator == HPnumerator) {
