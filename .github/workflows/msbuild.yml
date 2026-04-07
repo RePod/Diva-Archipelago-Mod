@@ -39,11 +39,11 @@ jobs:
       working-directory: ./Dependencies/APCpp
       run: cmake --build out --config ${{env.BUILD_CONFIGURATION}}
       
-    - name: Artifact APCpp
-      uses: actions/upload-artifact@v6
-      with:
-        name: artifact-apcpp-${{env.BUILD_CONFIGURATION}}
-        path: .\Dependencies\APCpp\out\${{env.BUILD_CONFIGURATION}}\*
+    # - name: Artifact APCpp
+      # uses: actions/upload-artifact@v6
+      # with:
+        # name: artifact-apcpp-${{env.BUILD_CONFIGURATION}}
+        # path: .\Dependencies\APCpp\out\${{env.BUILD_CONFIGURATION}}\*
 
     - name: Build Archipelago
       working-directory: ${{env.GITHUB_WORKSPACE}}
