@@ -1,6 +1,7 @@
 #include "APClient.h"
 #include "APDeathLink.h"
 #include "APGUI.h"
+#include "APHints.h"
 #include "APIDHandler.h"
 #include "APReload.h"
 #include "APTraps.h"
@@ -91,6 +92,7 @@ namespace APGUI
         if (ImGui::BeginTabBar("APTabs")) {
             APClient::ImGuiTab();
             APIDHandler::ImGuiTab();
+            APHints::ImGuiTab();
             APDeathLink::ImGuiTab();
             APTraps::ImGuiTab();
 

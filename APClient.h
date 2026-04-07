@@ -1,6 +1,5 @@
 #pragma once
 #include "pch.h"
-#include <Archipelago.h>
 
 namespace APClient
 {
@@ -13,11 +12,14 @@ namespace APClient
     extern std::vector<int> missingIDs; // -> IDHandler
     extern int victoryID; // -> IDHandler
     extern std::unordered_map<uint32_t, std::string> item_ap_id_to_name; // -> IDHandler
+    extern std::unordered_map<std::string, uint32_t> location_name_to_id;
 
     extern int leekHave;
     extern int leekNeed;
 
     void UpdateMissing();
+
+    char* getSlotName();
 
     void config(toml::v3::ex::parse_result& data);
     void reset();

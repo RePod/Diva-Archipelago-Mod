@@ -1,6 +1,7 @@
 #include "APClient.h"
 #include "APDeathLink.h"
 #include "APGUI.h"
+#include "APHints.h"
 #include "APIDHandler.h"
 #include "APReload.h"
 #include "APTraps.h"
@@ -32,6 +33,7 @@ namespace APClient
 
     nlohmann::json_abi_v3_12_0::json datapackageJSON;
     std::unordered_map<uint32_t, std::string> item_ap_id_to_name;
+    std::unordered_map<std::string, uint32_t> location_name_to_id;
 
     // Item and location tracking
 
@@ -67,6 +69,11 @@ namespace APClient
         strncpy(slotName, config_name.c_str(), config_name.size() + 1);
         strncpy(slotServer, config_server.c_str(), config_server.size() + 1);
         strncpy(slotPassword, config_pass.c_str(), config_pass.size() + 1);
+    }
+
+    char* getSlotName()
+    {
+        return slotName;
     }
 
     void connect()
@@ -126,6 +133,7 @@ namespace APClient
         progHPTotal = 1;
 
         APIDHandler::reset();
+        APHints::reset();
     }
 
     // Server messages
@@ -183,6 +191,8 @@ namespace APClient
 
         // TODO: Remaps
 
+        DataRequestRaw.empty();
+        requested = false;
         APReload::run();
         APTraps::reset();
         UpdateMissing();
@@ -287,6 +297,12 @@ namespace APClient
 
             LogAppend(msg->text);
 
+            if (msg->type == AP_MessageType::Hint)
+            {
+                AP_HintMessage* h_msg = static_cast<AP_HintMessage*>(msg);
+                APHints::handleHintMessage(*h_msg);
+            }
+
             AP_ClearLatestMessage();
         }
     }
@@ -345,6 +361,8 @@ namespace APClient
 
         for (auto& el : datapackageJSON["item_name_to_id"].items())
             item_ap_id_to_name[(uint32_t)el.value()] = el.key();
+
+        location_name_to_id = datapackageJSON["location_name_to_id"].get<std::unordered_map<std::string, uint32_t>>();
 
         datapackageLoaded = true;
         return true;
