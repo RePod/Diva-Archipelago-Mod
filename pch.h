@@ -40,4 +40,11 @@ inline void HelpMarker(const char* desc)
     }
 }
 
+inline void CenterText(std::string text)
+{
+    float margin = ImGui::GetContentRegionAvail().x / 2;
+    float width = ImGui::CalcTextSize(text.c_str()).x / 2;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + margin - width);
+}
+
 #endif //PCH_H

@@ -11,8 +11,10 @@ namespace APClient
     extern std::vector<int> recvIDs; // Song IDs received as items (not item IDs)
     extern std::vector<int> missingIDs; // -> IDHandler
     extern int victoryID; // -> IDHandler
+    extern std::unordered_map<std::string, uint32_t> item_name_to_ap_id;
     extern std::unordered_map<uint32_t, std::string> item_ap_id_to_name; // -> IDHandler
     extern std::unordered_map<std::string, uint32_t> location_name_to_id;
+    extern std::unordered_map<uint32_t, std::string> location_id_to_name;
 
     extern int leekHave;
     extern int leekNeed;
@@ -24,7 +26,8 @@ namespace APClient
     void config(toml::v3::ex::parse_result& data);
     void reset();
 
-    AP_RequestStatus ServerDataRequest_Raw(std::string);
+    AP_RequestStatus ServerDataRequest_Raw(std::string key, AP_GetServerDataRequest& request, bool& requested, std::string& output);
+
     void GetSlotData();
 
     void ItemClear();

@@ -100,7 +100,8 @@ namespace APIDHandler
 
 			ImGui::SameLine();
 			int totalLocs = (seedIDs.size() - 1) * 2;
-			ImGui::Text("Locs: %d/%d |", CheckedLocations.size(), totalLocs);
+			// APCpp's check callback runs multiple times around goaling?
+			ImGui::Text("Locs: %d/%d |", min(CheckedLocations.size(), totalLocs), totalLocs);
 
 			ImGui::SameLine();
 			ImGui::Text("In logic: %d |", availableLocs);
@@ -147,13 +148,10 @@ namespace APIDHandler
 						ImGui::TableSetColumnIndex(0);
 
 						std::string label = (available > 0) ? std::to_string(available) : " ";
-						if (songID == APClient::victoryID / 10)
-						{
-							ImGui::Text(" GOAL! ");
-						}
-						else {
-							ImGui::Text("   %s   ", label.c_str());
-						}
+						std::string label2 = (songID == APClient::victoryID / 10) ? "GOAL" : label;
+
+						CenterText(label2);
+						ImGui::Text("%s", label2.c_str());
 
 						ImGui::TableSetColumnIndex(1);
 						std::string name = item_ap_id_to_name[songID * 10];
@@ -192,7 +190,8 @@ namespace APIDHandler
 					{
 						ImGui::TableNextRow();
 						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("   ?   ");
+						CenterText("?");
+						ImGui::Text("?");
 						ImGui::TableSetColumnIndex(1);
 						ImGui::Text("Waiting for songs...");
 					}
