@@ -32,7 +32,7 @@ jobs:
       with:
         path: |
           ./Dependencies/APCpp
-        key: ${{ runner.os }}-APCpp-${{ hashFiles('**/APCpp/CMakeLists.txt', '**/APCpp/*.c', '**/APCpp/*.h') }}
+        key: ${{ runner.os }}-APCpp-${{ matrix.build_config }}-${{ hashFiles('**/APCpp/CMakeLists.txt', '**/APCpp/*.c', '**/APCpp/*.h') }}
 
     - name: Configure APCpp
       working-directory: ./Dependencies/APCpp
