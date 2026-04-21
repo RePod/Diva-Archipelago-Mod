@@ -45,8 +45,8 @@ jobs:
     # - name: Artifact APCpp
       # uses: actions/upload-artifact@v6
       # with:
-        # name: artifact-apcpp-${{env.BUILD_CONFIGURATION}}
-        # path: .\Dependencies\APCpp\out\${{env.BUILD_CONFIGURATION}}\*
+        # name: artifact-apcpp-${{ matrix.build_config }}
+        # path: .\Dependencies\APCpp\out\${{ matrix.build_config }}\*
 
     - name: Build Archipelago
       working-directory: ${{env.GITHUB_WORKSPACE}}
