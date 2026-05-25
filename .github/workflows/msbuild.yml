@@ -93,3 +93,11 @@ jobs:
         name: artifact-ArchipelagoMod-${{ matrix.build_config }}-PDB
         path: .\pdb\
         compression-level:
+
+  post:
+    needs: build
+    steps: 
+      - name: Summarize
+        shell: bash
+        run: |
+          echo "Debug builds require Visual Studio installed with the \"Desktop Development with C++\" workload." >> $GITHUB_STEP_SUMMARY
