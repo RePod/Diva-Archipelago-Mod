@@ -101,4 +101,4 @@ jobs:
       - name: Summarize
         shell: bash
         run: |
-          echo "Debug builds require Visual Studio installed with the \"Desktop Development with C++\" workload." >> $GITHUB_STEP_SUMMARY
+          echo "Debug builds require Visual Studio installed and set up for C++ development." >> $GITHUB_STEP_SUMMARY
