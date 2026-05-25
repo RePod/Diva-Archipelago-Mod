@@ -95,6 +95,7 @@ jobs:
         compression-level:
 
   post:
+    runs-on: windows-latest
     needs: build
     steps: 
       - name: Summarize
