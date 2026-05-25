@@ -79,11 +79,13 @@ jobs:
         path: .\dist\*
         compression-level: 9 # not my compute.
         
+    # APCpp doesn't supply a PDB for Release by default and cmd move doesn't have error suppression
     - name: Flatten PDBs
+      shell: pwsh
       run: |
         mkdir pdb
         move .\x64\${{ matrix.build_config }}\ArchipelagoMod.pdb .\pdb
-        move .\Dependencies\APCpp\out\${{ matrix.build_config }}\APCpp.pdb .\pdb
+        move .\Dependencies\APCpp\out\${{ matrix.build_config }}\APCpp.pdb .\pdb -ErrorAction SilentlyContinue
 
     - name: Artifact PDBs
       uses: actions/upload-artifact@v6
