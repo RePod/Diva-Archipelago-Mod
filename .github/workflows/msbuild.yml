@@ -78,3 +78,12 @@ jobs:
         name: artifact-ArchipelagoMod-${{ matrix.build_config }}
         path: .\dist\*
         compression-level: 9 # not my compute.
+
+    - name: Artifact PDB
+      uses: actions/upload-artifact@v6
+      with:
+        name: artifact-ArchipelagoMod-${{ matrix.build_config }}-PDB
+        path: |
+         .\x64\${{ matrix.build_config }}\ArchipelagoMod.pdb
+         .\Dependencies\APCpp\out\${{ matrix.build_config }}\APCpp.pdb
+        compression-level:
