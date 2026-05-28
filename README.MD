@@ -1,11 +1,12 @@
 [![MSBuild](https://github.com/Cynichill/Diva-Archipelago-Mod/actions/workflows/msbuild.yml/badge.svg)](https://github.com/Cynichill/Diva-Archipelago-Mod/actions/workflows/msbuild.yml)
 
-Prebuilt Release and Debug versions can be found in [Actions](https://github.com/Cynichill/Diva-Archipelago-Mod/actions).
+Prebuilt Release versions can be found in [Actions](https://github.com/Cynichill/Diva-Archipelago-Mod/actions).
 Builds happen on commit and automatically weekly.
 
 ### Building (local)
 
-Archipelago Mod and APCpp build targets **need to be the same.** If you experience crashes, this is most likely why.
+Archipelago Mod and APCpp build configs **need to be the same.** If you experience crashes, this is most likely why.
+Debug configs will **not** typically run on end user systems for testing. Only share Release.
 
 1. Clone recursively with `git clone --recurse-submodules`
    - [APCpp](https://github.com/N00byKing/APCpp) is pinned as a submodule, and has pinned submodules of its own.
