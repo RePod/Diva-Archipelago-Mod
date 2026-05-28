@@ -37,18 +37,22 @@ namespace APTraps
 
 	void config(const toml::table& settings)
 	{
-		float config_duration = settings["duration"].value_or(trapDuration);
+		toml::table section;
+		if (settings.contains("traps") && settings["traps"].is_table())
+			section = *settings["traps"].as_table();
+
+		float config_duration = section["duration"].value_or(trapDuration);
 		trapDuration = std::clamp(config_duration, 0.0f, 300.0f);
 		APLogger::print("trap duration: %.02f (config: %.02f)\n", trapDuration, config_duration);
 
-		float config_iconinterval = settings["icon_reroll"].value_or(iconInterval);
+		float config_iconinterval = section["icon_interval"].value_or(iconInterval);
 		iconInterval = std::clamp(config_iconinterval, 0.0f, 60.0f);
-		APLogger::print("trap icon_reroll: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
+		APLogger::print("trap icon_interval: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
 
-		trapOverlap = settings["overlap"].value_or(false);
+		trapOverlap = section["overlap"].value_or(false);
 		APLogger::print("trap overlap: %d\n", trapOverlap);
 
-		randomizeGlyphs = settings["icon_glyphs"].value_or(false);
+		randomizeGlyphs = section["icon_glyphs"].value_or(false);
 		APLogger::print("trap icon_glyphs: %d\n", randomizeGlyphs);
 	}
 
