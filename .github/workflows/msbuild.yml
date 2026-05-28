@@ -19,7 +19,7 @@ jobs:
     
     strategy:
       matrix:
-        build_config: ["Release", "Debug"]
+        build_config: ["Release"] # "Debug"
 
     steps:
     - uses: actions/checkout@v6
@@ -92,7 +92,7 @@ jobs:
       with:
         name: artifact-ArchipelagoMod-${{ matrix.build_config }}-PDB
         path: .\pdb\
-        compression-level:
+        compression-level: 9
 
   post:
     runs-on: windows-latest
