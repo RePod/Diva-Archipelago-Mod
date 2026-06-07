@@ -137,6 +137,7 @@ namespace APClient
 
         seedIDs.clear();
         recvIDs.clear();
+        missingIDs.clear();
         CheckedLocations.clear();
 
         say[0] = '\0';
