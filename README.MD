@@ -14,7 +14,7 @@ Debug configs will **not** typically run on end user systems for testing. Only s
    - File > Open > Folder (Ctrl+Alt+Shift+O)
    - Open the APCpp folder
    - Right-click `CMakeLists.txt` in Solution Explorer > Build
-3. Copy/move/symlink `APCpp\out\build\x64-Debug\APCpp.dll` to the game's Archipelago Mod folder.
+3. Copy/move/symlink `APCpp\out\build\(build config)\APCpp.dll` to the game's Archipelago Mod folder.
    - This is dynamically linked when the mod loads. No need to edit `config.toml`.
 4. Build Archipelago Mod as normal.
 5. Copy/move/symlink the DLL to the game's Archipelago Mod folder.
