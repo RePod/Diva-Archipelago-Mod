@@ -155,15 +155,16 @@ namespace APGUI
             return;
 
         ImGui::OpenPopup("Archipelago Mod - First Run");
-        if (ImGui::BeginPopupModal("Archipelago Mod - First Run", NULL, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize))
+        if (ImGui::BeginPopupModal("Archipelago Mod - First Run", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize))
         {
             ImGui::SetWindowFocus("Archipelago Mod - First Run");
 
-            std::string warn1 = "After connecting, press the reload key while on the song list to get new songs.\n"
-                "Songs can be cleared on any available difficulty for the same checks.\n\n";
-            ImGui::Text("%s", warn1.c_str());
-
-            ImGui::Text("\nCurrent reload key: %s", APReload::reloadVal.c_str());
+            ImGui::Text("This mod is for use with");
+            ImGui::SameLine();
+            ImGui::TextLinkOpenURL("Archipelago", "https://archipelago.gg");
+            ImGui::SameLine(0.0f, 0.0f);
+            ImGui::Text(", a multi-game randomizer.");
+            ImGui::Text("\nAdditional help can be found in its Discord linked on the website.");
 
             ImGui::Separator();
             if (ImGui::Button("Okay"))
@@ -185,6 +186,16 @@ namespace APGUI
             APSettings::ImGuiTab();
 
             ImGui::Separator();
+
+            if (ImGui::CollapsingHeader("Help")) {
+                /*if (ImGui::Button("Show first run warning")) {
+                    showWarning = true;
+                    warning();
+                }*/
+                ImGui::TextLinkOpenURL("Archipelago website", "https://archipelago.gg");
+                ImGui::TextLinkOpenURL("Project Diva AP documentation", "https://github.com/Cynichill/DivaAPworld/tree/main/docs");
+                ImGui::TextLinkOpenURL("Project Diva AP Discord thread", "https://discord.com/channels/731205301247803413/1241134454391443580");
+            }
 
             APReload::ImGuiTab();
 
