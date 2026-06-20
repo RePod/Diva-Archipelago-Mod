@@ -164,7 +164,7 @@ namespace APGUI
             ImGui::TextLinkOpenURL("Archipelago", "https://archipelago.gg");
             ImGui::SameLine(0.0f, 0.0f);
             ImGui::Text(", a multi-game randomizer.");
-            ImGui::Text("\nAdditional help can be found in its Discord linked on the website.");
+            ImGui::Text("\nFor more information, check the Help section under the Advanced tab.");
 
             ImGui::Separator();
             if (ImGui::Button("Okay"))
