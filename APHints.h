@@ -26,7 +26,7 @@ namespace APHints
     void reset();
     void drop();
     bool isPlayer(const std::string &playerName);
-    void handleHintMessage(const AP_HintMessage&);
+    void handleHintMessage(const AP_HintMessage& recvHint);
     void updateSentLocations(const std::array<int64_t, 2> &locationIDs);
     void updateByItemName(const std::string &itemName);
 

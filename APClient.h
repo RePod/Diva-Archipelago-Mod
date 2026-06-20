@@ -27,7 +27,7 @@ namespace APClient
 
     char* getSlotName();
 
-    void config(const toml::v3::ex::parse_result& data);
+    void config(const toml::table& settings);
     void save(toml::table& settings);
     void reset();
 
@@ -36,15 +36,15 @@ namespace APClient
     void GetSlotData();
 
     void ItemClear();
-    void ItemRecv(int64_t, bool);
-    void PushRecvID(int64_t);
-    void LocationChecked(int64_t);
+    void ItemRecv(int64_t itemID, bool notify);
+    void PushRecvID(int64_t songID);
+    void LocationChecked(int64_t locationID);
     void LocationSend(int64_t pvID);
 
     void LogAppend(const std::string& text);
     void CheckMessages();
 
-    void RecvDeath(std::string, std::string);
+    void RecvDeath(std::string src, std::string cause);
 
     bool LoadDatapackage();
     void ImGuiTab();
