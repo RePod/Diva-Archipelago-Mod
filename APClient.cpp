@@ -412,6 +412,11 @@ namespace APClient
                     ImGui::MenuItem("Hide server", NULL, &hideServer);
                     ImGui::EndPopup();
                 }
+                ImGui::SameLine();
+                HelpMarker(
+                    "Server address must have the port number.\nRight-click input to toggle visibility."
+                    "\n\nExample addresses:\n archipelago.gg:38281\n localhost:38281\n 127.0.0.1:38281"
+                );
 
                 ImGui::InputText("Password", slotPassword, sizeof(slotPassword), ImGuiInputTextFlags_Password);
 
