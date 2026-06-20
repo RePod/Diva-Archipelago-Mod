@@ -12,7 +12,6 @@ namespace APIDHandler
 	void config(const toml::table& settings);
 	void save(toml::table& settings);
 
-	bool checkNC();
 	void lock();
 	void unlock();
 	bool check(std::string& line);

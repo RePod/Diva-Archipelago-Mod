@@ -41,22 +41,6 @@ namespace APIDHandler
 		settings.insert("tracker", config);
 	}
 
-	bool checkNC()
-	{
-		if (!reload_needed)
-			return false;
-
-		HMODULE hModule = GetModuleHandle(L"NewClassics.dll");
-
-		if (hModule != NULL) {
-			APLogger::print("IDH: New Classics suspected, reload recommended\n");
-			return true;
-		}
-
-		reload_needed = false;
-		return false;
-	}
-
 	bool check(std::string& line)
 	{
 		if (reload_needed /*|| AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated*/ || missingIDs.size() == 0 || line.find("pv_") != 0)
@@ -76,12 +60,16 @@ namespace APIDHandler
 		int pvID = std::stoi(line.substr(start + 1, line.find_first_of(".") - start - 1));
 
 		// Always enabled to prevent softlocks or crashing.
-		if (144 == pvID || 700 == pvID || 701 == pvID)
+		if (144 == pvID || 700 == pvID)
 			return true;
 
 		auto begin = freeplay ? missingIDs.begin() : recvIDs.begin();
 		auto end = freeplay ? missingIDs.end() : recvIDs.end();
 		auto contains = std::find(begin, end, pvID) != end;
+
+		static HMODULE h701 = GetModuleHandle(L"pv701.dll");
+		if (701 == pvID && !contains && !h701)
+			return true;
 
 		if (!freeplay && contains && hide_checked)
 		{
