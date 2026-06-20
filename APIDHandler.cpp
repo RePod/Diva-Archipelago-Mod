@@ -67,10 +67,6 @@ namespace APIDHandler
 		auto end = freeplay ? missingIDs.end() : recvIDs.end();
 		auto contains = std::find(begin, end, pvID) != end;
 
-		static HMODULE h701 = GetModuleHandle(L"pv701.dll");
-		if (701 == pvID && !contains && !h701)
-			return true;
-
 		if (!freeplay && contains && hide_checked)
 		{
 			for (const auto& songID : recvIDs) {
