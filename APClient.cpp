@@ -409,7 +409,7 @@ namespace APClient
                 ImGui::InputText("Slot Name", slotName, sizeof(slotName));
                 ImGui::InputText("Server", slotServer, sizeof(slotServer), !hideServer ? 0 : ImGuiInputTextFlags_Password);
                 if (ImGui::BeginPopupContextItem("##hideServer")) {
-                    ImGui::Checkbox("Hide", &hideServer);
+                    ImGui::MenuItem("Hide server", NULL, &hideServer);
                     ImGui::EndPopup();
                 }
 
@@ -458,15 +458,17 @@ namespace APClient
                 ImGui::BeginChild("APLog", ImVec2(0, 250));
 
                 if (APLogCopyMode) {
-                    ImGui::InputTextMultiline("##APLogMulti", (char*)APLog.c_str(), sizeof(APLog), ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_WordWrap);
-
-                    // TODO: dedupe
-                    if (ImGui::BeginPopupContextItem("##xx")) {
-                        ImGui::Checkbox("Copy mode (no autoscroll)", &APLogCopyMode);
-                        ImGui::EndPopup();
-                    }
+                    ImGui::InputTextMultiline(
+                        "##APLogMulti",
+                        (char*)APLog.c_str(),
+                        APLog.size() + 1,
+                        ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y),
+                        ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_WordWrap
+                    );
                 }
                 else {
+                    ImGui::BeginChild("APLogUnformatted");
+
                     ImGui::PushTextWrapPos(0.0f);
 
                     std::istringstream stream(APLog);
@@ -480,14 +482,17 @@ namespace APClient
 
                     if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0f)
                         ImGui::SetScrollHereY(1.0f);
+
+                    ImGui::EndChild();
+                }
+
+                if (ImGui::BeginPopupContextItem("##xx")) {
+                    ImGui::MenuItem("Copy mode (no autoscroll)", NULL, &APLogCopyMode);
+                    if (ImGui::MenuItem("Clear")) APLog.clear();
+                    ImGui::EndPopup();
                 }
 
                 ImGui::EndChild();
-
-                if (ImGui::BeginPopupContextItem("##xx")) {
-                    ImGui::Checkbox("Copy mode (no autoscroll)", &APLogCopyMode);
-                    ImGui::EndPopup();
-                }
 
                 ImGui::Separator();
 
