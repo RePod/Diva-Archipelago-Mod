@@ -120,7 +120,7 @@ namespace APIDHandler
 		int64_t totalLocs = (seedIDs.size() - 1) * 2;
 
 		std::ostringstream trackerStream;
-		trackerStream << "Songs: " << recvIDs.size() << "/" << (seedIDs.size() - 1) << " | ";
+		trackerStream << "Songs: " << recvIDs.size() << "/" << seedIDs.size() << " | ";
 		trackerStream << "Locs: " << min(static_cast<int64_t>(CheckedLocations.size()), totalLocs) << "/" << totalLocs << " | ";
 		trackerStream << "Logic: " << availableLocs << " | ";
 		trackerStream << "Leeks: " << APClient::leekHave << "/" << APClient::leekNeed;
