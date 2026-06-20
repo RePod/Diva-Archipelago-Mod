@@ -198,7 +198,8 @@ namespace APHints
 
             if (ImGui::IsItemHovered()) {
                 ImGui::BeginTooltip();
-                ImGui::Text("Refresh checked status for non-song items.\nThis sends a !hint command in chat.");
+                ImGui::Text("Sends a !hint command in chat for better accuracy.\n"
+                            "New hints are not created and hint points are not spent.");
                 ImGui::EndTooltip();
             }
 
