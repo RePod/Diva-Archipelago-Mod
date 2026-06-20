@@ -19,6 +19,8 @@ namespace APIDHandler
 	auto &item_ap_id_to_name = APClient::item_ap_id_to_name;
 	int availableLocs = 0; // Calculated on reload
 
+	std::string trackerLine; // Holds the formatted Tracker line
+
 	auto &HintedIDs = APHints::HintedIDs;
 
 	void config(const toml::table& settings)
@@ -111,21 +113,30 @@ namespace APIDHandler
 		reloading = false;
 	}
 
+	void updateTrackerLine()
+	{
+		// TODO: Update from relevant send/recv callbacks
+
+		int64_t totalLocs = (seedIDs.size() - 1) * 2;
+
+		std::ostringstream trackerStream;
+		trackerStream << "Songs: " << recvIDs.size() << "/" << (seedIDs.size() - 1) << " | ";
+		trackerStream << "Locs: " << min(static_cast<int64_t>(CheckedLocations.size()), totalLocs) << "/" << totalLocs << " | ";
+		trackerStream << "Logic: " << availableLocs << " | ";
+		trackerStream << "Leeks: " << APClient::leekHave << "/" << APClient::leekNeed;
+
+		trackerLine = trackerStream.str();
+
+		// Dump for i.e. stream overlay
+		//std::ofstream tracker("stats.txt");
+		//tracker << trackerLine;
+	}
+
 	void ImGuiTab()
 	{
 		if (ImGui::BeginTabItem("Tracker")) {
-			ImGui::Text("Songs: %d/%d |", recvIDs.size(), seedIDs.size() - 1);
-
-			ImGui::SameLine();
-			int64_t totalLocs = (seedIDs.size() - 1) * 2;
-			// APCpp's check callback runs multiple times around goaling?
-			ImGui::Text("Locs: %d/%d |", min(static_cast<int64_t>(CheckedLocations.size()), totalLocs), totalLocs);
-
-			ImGui::SameLine();
-			ImGui::Text("In logic: %d |", availableLocs);
-
-			ImGui::SameLine();
-			ImGui::Text("Leeks: %d/%d", APClient::leekHave, APClient::leekNeed);
+			updateTrackerLine();
+			ImGui::Text(trackerLine.c_str());
 
 			if (ImGui::BeginTable("tableTrackerOptions", 2, ImGuiTableFlags_SizingStretchSame))
 			{
