@@ -435,8 +435,7 @@ namespace APClient
             }
             else
             {
-                if (ImGui::Button("Disconnect"))
-                {
+                if (ImGui::Button("Disconnect")) {
                     reset();
                     AP_Shutdown();
                 }
@@ -447,6 +446,12 @@ namespace APClient
                 ImGui::SameLine();
                 if (ImGui::Button("Reload"))
                     APReload::run();
+
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Reload key: %s", APReload::reloadVal);
+                    ImGui::EndTooltip();
+                }
 
                 ImGui::Separator();
 
