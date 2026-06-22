@@ -135,20 +135,7 @@ HOOK(void, __fastcall, _ChangeGameSubState, 0x1527E49E0, int state, int substate
         skipped = false;
     }
     else if (state == 9 && substate == 47 || state == 6 && substate == 47) {
-        bool reload_was_needed = APIDHandler::reload_needed;
-        APIDHandler::reload_needed = false;
         APIDHandler::unlock();
-
-        if (reload_was_needed) {
-            if (APClient::recvIDs.size() > 0) {
-                APLogger::print("Forcing needed reload (have IDs)\n");
-                original_ChangeGameSubState(0, 1);
-                return;
-            }
-            else {
-                APLogger::print("Skipped needed reload (no IDs)\n");
-            }
-        }
 
        if (APReload::skipMainMenu && skipped == false) {
             APLogger::print("Skipping main menu (state: %d)\n", state);

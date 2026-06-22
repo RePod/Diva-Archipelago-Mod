@@ -9,7 +9,6 @@ namespace APIDHandler
 	bool exists = false;
 	bool freeplay = false;
 	bool hide_checked = true;
-	bool reload_needed = true;
 	bool reloading = false;
 
 	auto &CheckedLocations = APClient::CheckedLocations;
@@ -43,7 +42,7 @@ namespace APIDHandler
 
 	bool check(std::string& line)
 	{
-		if (reload_needed /*|| AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated*/ || missingIDs.size() == 0 || line.find("pv_") != 0)
+		if (missingIDs.size() == 0 || line.find("pv_") != 0 /*|| AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated*/)
 			return true;
 
 		size_t diff_pos = line.find(".difficulty.");
