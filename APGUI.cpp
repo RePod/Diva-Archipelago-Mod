@@ -17,33 +17,26 @@ namespace APGUI
     bool showWarning = true; // First run warning
 
     bool showImGuiDemo = false;
-    bool g_ImGuiInitialized = false;
     bool firstFrame = true;
-    bool prevUnfocused = false;
 
     ID3D11Device* g_Device = nullptr;
     ID3D11DeviceContext* g_Context = nullptr;
     HWND g_hWnd = nullptr;
     WNDPROC g_OriginalWndProc = nullptr;
 
-    void init(IDXGISwapChain* swapChain)
+    void init(IDXGISwapChain* swapChain, ID3D11Device* device, ID3D11DeviceContext* deviceContext)
     {
-        if (g_ImGuiInitialized)
-            return;
-
         ImGui_ImplWin32_EnableDpiAwareness();
         float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
 
-        // Get device + context
-        swapChain->GetDevice(__uuidof(ID3D11Device), (void**)&g_Device);
-        g_Device->GetImmediateContext(&g_Context);
+        g_Device = device;
+        g_Context = deviceContext;
 
         // Get window handle
         DXGI_SWAP_CHAIN_DESC desc;
         swapChain->GetDesc(&desc);
         g_hWnd = desc.OutputWindow;
 
-        // Init ImGui
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGui::StyleColorsDark();
@@ -57,12 +50,10 @@ namespace APGUI
         ImGui_ImplWin32_Init(g_hWnd);
         ImGui_ImplDX11_Init(g_Device, g_Context);
 
-        g_ImGuiInitialized = true;
-
         APSettings::load();
     }
 
-    void onFrame()
+    void onFrame(IDXGISwapChain* swapChain)
     {
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();

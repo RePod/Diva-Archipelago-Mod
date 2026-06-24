@@ -189,16 +189,18 @@ HOOK(void, __fastcall, _PvGameApplyDiff, 0x14027BB00, long long* data, int diff)
 
 extern "C"
 {
+    void __declspec(dllexport) D3DInit(IDXGISwapChain* swapChain, ID3D11Device* device, ID3D11DeviceContext* deviceContext)
+    {
+        APGUI::init(swapChain, device, deviceContext);
+        APGUI::g_OriginalWndProc = (WNDPROC)SetWindowLongPtr(APGUI::g_hWnd, GWLP_WNDPROC, (LONG_PTR)HookedWndProc);
+    }
+
     void __declspec(dllexport) OnFrame(IDXGISwapChain* swapChain)
     {
         APClient::CheckMessages();
+        APGUI::onFrame(swapChain);
 
-        APGUI::init(swapChain);
-        if (!APGUI::g_OriginalWndProc)
-            APGUI::g_OriginalWndProc = (WNDPROC)SetWindowLongPtr(APGUI::g_hWnd, GWLP_WNDPROC, (LONG_PTR)HookedWndProc);
-        APGUI::onFrame();
-
-        if (APGUI::g_ImGuiInitialized && !ImGui::GetIO().WantCaptureKeyboard)
+        if (!ImGui::GetIO().WantCaptureKeyboard)
             APReload::scan();
     }
 
