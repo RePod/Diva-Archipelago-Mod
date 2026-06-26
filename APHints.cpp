@@ -96,7 +96,7 @@ namespace APHints
     {
         if (!hintsRequested) {
             auto name = "_read_hints_0_" + std::to_string(AP_GetPlayerID());
-            APClient::ServerDataRequest_Raw(name, hintsRequest, hintsRequested, hintsRaw_S);
+            //APClient::ServerDataRequest_Raw(name, hintsRequest, hintsRequested, hintsRaw_S);
             return;
         }
 

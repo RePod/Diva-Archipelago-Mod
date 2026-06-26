@@ -23,9 +23,15 @@
 #include <thread>
 #include <toml++/toml.h>
 #include <imgui.h>
+#include <detours.h>
 #include <Archipelago.h>
 #include "APLogger.h"
 #include "Helpers.h"
+
+const uint64_t PvPlayData = 0x1412C2330; // Struct eventually(TM)
+
+// ...\Hatsune Miku Project DIVA Mega Mix Plus\mods\ArchipelagoMod
+const std::filesystem::path BasePath = std::filesystem::current_path();
 
 // TODO: Relocate
 inline void HelpMarker(const char* desc)
