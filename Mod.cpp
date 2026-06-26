@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "APClient.h"
 #include "APDeathLink.h"
 #include "APGUI.h"
@@ -5,12 +6,6 @@
 #include "APReload.h"
 #include "APTraps.h"
 #include "Diva.h"
-#include "pch.h"
-#include <Archipelago.h>
-#include <d3d11.h>
-#include <detours.h>
-#include <imgui_impl_dx11.h>
-#include <imgui_impl_win32.h>
 
 HOOK(bool, __fastcall, _InputEverythingElse, 0x1402AB070, long long a1, int btn)
 {

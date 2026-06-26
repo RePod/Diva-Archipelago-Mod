@@ -180,7 +180,6 @@ namespace APIDHandler
 						if (name.empty())
 							name = "ID " + std::to_string(songID) + " (not in datapackage)";
 
-						auto PvPlayData = 0x1412C2330;
 						if (*(bool*)PvPlayData && songID == static_cast<int64_t>(*(int*)(PvPlayData + 0x10)))
 							name = "NP: " + name;
 

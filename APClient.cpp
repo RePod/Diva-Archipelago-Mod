@@ -23,15 +23,12 @@ namespace APClient
     std::string APLog = ""; // Various memory management concerns.
     bool APLogCopyMode = false;
 
-    // TODO: ID remaps
-    AP_RoomInfo RoomInfo;
-
-    std::string DatapackageChecksum;
-    bool datapackageLoaded = false;
-
-    std::filesystem::path LocalPath = std::filesystem::current_path();
+    // Hold server data messaging
+    std::vector<std::pair<AP_GetServerDataRequest, std::function<void(std::string raw)>>> DataRequests;
 
     // Datapackage
+    std::string DatapackageChecksum;
+    bool datapackageLoaded = false;
 
     nlohmann::json_abi_v3_12_0::json datapackageJSON;
     std::unordered_map<std::string, int64_t> item_name_to_ap_id;
@@ -39,23 +36,21 @@ namespace APClient
     std::unordered_map<std::string, int64_t> location_name_to_id;
     std::unordered_map<int64_t, std::string> location_id_to_name;
 
-    // Item and location tracking
-
-    std::string DataRequestRaw; // Raw should always be a (JSON) string.
-    AP_GetServerDataRequest request;
-    bool requested = false; // state tracking of request since it doesn't provide a null state
-
-    nlohmann::json_abi_v3_12_0::json slotData;
-    std::vector<int64_t> seedIDs = {}; // Song IDs that are part of the seed
-    std::vector<int64_t> recvIDs = {}; // Song IDs received as items
-    std::vector<int64_t> missingIDs = {}; // Song IDs not yet received
-    std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = 10, 11.
-
     // TODO: Relocate?
     int clearGrade = 2;
     char diffs[5][10] = {"Cheap", "Standard", "Great", "Excellent", "Perfect"};
 
-    int64_t victoryID = 0; // The AP Item/Loc ID. (confusion ensues)
+    // Archipelago state
+
+    AP_RoomInfo RoomInfo;
+
+    nlohmann::json_abi_v3_12_0::json slotData;
+    std::vector<int64_t> seedIDs = {}; // Song IDs (Love is War [1] = 1) that are part of the seed
+    std::vector<int64_t> recvIDs = {}; // Song IDs (Love is War [1] = 1) received as items
+    std::vector<int64_t> missingIDs = {}; // Song IDs (Love is War [1] = 1) not yet received
+    std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = 10, 11
+
+    int64_t victoryID = 0; // Song ID * 10, Love is War [1] = 10
     int leekHave = 0;
     int leekNeed = 0;
 
@@ -106,6 +101,80 @@ namespace APClient
         return slotName;
     }
 
+    void SlotData_LeekHave(int leekWinCount)
+    {
+        leekNeed = leekWinCount;
+    }
+
+    void SlotData_ProgHP(int progHP)
+    {
+        progHPTotal = 1 + progHP;
+    }
+
+    void SlotData_Grade(int grade)
+    {
+        clearGrade = grade;
+    }
+
+    void SlotData_VictoryID(int id)
+    {
+        victoryID = id;
+    }
+
+    void SlotData_FinalSongs(std::string raw)
+    {
+        auto final = nlohmann::json::parse(raw);
+        if (final.is_array())
+        {
+            seedIDs = final.get<std::vector<int64_t>>();
+            std::sort(seedIDs.begin(), seedIDs.end());
+        }
+
+        APReload::run();
+        APTraps::reset();
+        UpdateMissing();
+    }
+
+    void ItemClear()
+    {
+        APLogger::print("Client: reset\n");
+        reset();
+    }
+
+    void ItemRecv(int64_t itemID, bool notify)
+    {
+        switch (itemID) {
+        case 1:
+            leekHave += 1;
+            UpdateMissing();
+            break;
+        case 2:
+            break; // Filler
+        case 3:
+            APDeathLink::recvHP();
+            break;
+        case 4:
+            APTraps::touchHidden();
+            break;
+        case 5:
+            APTraps::touchSudden();
+            break;
+        case 9:
+            APTraps::touchIcon();
+            break;
+        default:
+            if (itemID >= 10) {
+                PushRecvID(itemID / 10);
+                APHints::updateByItemName(item_ap_id_to_name[itemID]);
+            }
+        }
+    }
+
+    void LocationChecked(int64_t locationID)
+    {
+        CheckedLocations.push_back(locationID);
+    }
+
     void connect()
     {
         AP_Shutdown();
@@ -122,6 +191,12 @@ namespace APClient
             AP_SetItemRecvCallback(ItemRecv);
             AP_SetLocationCheckedCallback(LocationChecked);
 
+            AP_RegisterSlotDataIntCallback("victoryID", SlotData_VictoryID);
+            AP_RegisterSlotDataIntCallback("scoreGradeNeeded", SlotData_VictoryID);
+            AP_RegisterSlotDataIntCallback("leekWinCount", SlotData_LeekHave);
+            AP_RegisterSlotDataIntCallback("progHP", SlotData_ProgHP);
+            AP_RegisterSlotDataRawCallback("finalSongIDs", SlotData_FinalSongs);
+
             AP_Start();
         }
     }
@@ -130,10 +205,9 @@ namespace APClient
     {
         datapackageLoaded = false;
 
-        slotData = nullptr;
-        requested = false;
-        request.status = AP_RequestStatus::Pending;
-        DataRequestRaw.clear();
+        DataRequests.clear();
+
+        slotData.clear();
 
         seedIDs.clear();
         recvIDs.clear();
@@ -141,7 +215,7 @@ namespace APClient
         CheckedLocations.clear();
 
         say[0] = '\0';
-        APLog = "";
+        APLog.clear();
 
         clearGrade = 2;
         victoryID = 0;
@@ -155,106 +229,6 @@ namespace APClient
 
         APIDHandler::reset();
         APHints::reset();
-    }
-
-    // Server messages
-
-    AP_RequestStatus ServerDataRequest_Raw(std::string key, AP_GetServerDataRequest& rawRequest, bool& rawRequested, std::string& output)
-    {
-        if (!rawRequested)
-        {
-            rawRequested = true;
-
-            APLogger::print("ServerDataRequest_Raw: %s\n", key.c_str());
-            rawRequest.key = key;
-            rawRequest.value = &output;
-            rawRequest.type = AP_DataType::Raw;
-            rawRequest.status = AP_RequestStatus::Pending;
-
-            AP_GetServerData(&rawRequest);
-        }
-
-        if (rawRequested && rawRequest.status == AP_RequestStatus::Done || rawRequest.status == AP_RequestStatus::Error)
-            rawRequested = false;
-
-        return rawRequest.status;
-    }
-
-    void GetSlotData()
-    {
-        if (slotData.is_null() && request.status == AP_RequestStatus::Pending)
-        {
-            APLogger::print(__FUNCTION__" pending\n");
-            auto name = "_read_slot_data_" + std::to_string(AP_GetPlayerID());
-            ServerDataRequest_Raw(name, request, requested, DataRequestRaw);
-            return;
-        }
-
-        if (!slotData.is_null() || !&DataRequestRaw)
-            return;
-
-        // TODO: try catch?
-
-        slotData = nlohmann::json::parse(DataRequestRaw);
-
-        auto final = slotData["finalSongIDs"];
-        if (final.is_array())
-        {
-            seedIDs = final.get<std::vector<int64_t>>();
-            std::sort(seedIDs.begin(), seedIDs.end());
-        }
-
-        // APCpp provides easy int callbacks, but we're already here...
-
-        victoryID = slotData.value("victoryID", 0);
-        clearGrade = slotData.value("scoreGradeNeeded", 2);
-        leekNeed = slotData.value("leekWinCount", 1);
-        progHPTotal = 1 + slotData.value("progHP", 0); // The value is how many are in the pool, so +1.
-
-        // TODO: Remaps
-
-        DataRequestRaw.clear();
-        requested = false;
-        APReload::run();
-        APTraps::reset();
-        UpdateMissing();
-
-        APLogger::print(__FUNCTION__" complete\n");
-    }
-
-    void ItemClear()
-    {
-        APLogger::print("Client: reset\n");
-        reset();
-    }
-
-    void ItemRecv(int64_t itemID, bool notify)
-    {
-        switch (itemID) {
-            case 1:
-                leekHave += 1;
-                UpdateMissing();
-                break;
-            case 2:
-                break; // Filler
-            case 3:
-                APDeathLink::recvHP();
-                break;
-            case 4:
-                APTraps::touchHidden();
-                break;
-            case 5:
-                APTraps::touchSudden();
-                break;
-            case 9:
-                APTraps::touchIcon();
-                break;
-            default:
-                if (itemID >= 10) {
-                    PushRecvID(itemID / 10);
-                    APHints::updateByItemName(item_ap_id_to_name[itemID]);
-                }
-        }
     }
 
     void PushRecvID(int64_t songID)
@@ -279,11 +253,6 @@ namespace APClient
             recvIDs.begin(), recvIDs.end(),
             std::back_inserter(missingIDs)
         );
-    }
-
-    void LocationChecked(int64_t locationID)
-    {
-        CheckedLocations.push_back(locationID);
     }
 
     void LocationSend(int64_t pvID)
@@ -320,14 +289,51 @@ namespace APClient
         APLog += text;
     }
 
+    // Server messages
+
+    void DataRequest(const std::string key, std::function<void(std::string raw)> callback)
+    {
+        std::pair<AP_GetServerDataRequest, std::function<void(std::string raw)>> pair;
+
+        AP_GetServerDataRequest req;
+        req.key = key;
+        req.value = new std::string;
+        req.type = AP_DataType::Raw;
+        req.status = AP_RequestStatus::Pending;
+
+        pair.first = req;
+        pair.second = callback;
+
+        DataRequests.push_back(pair);
+
+        AP_GetServerData(&DataRequests.back().first);
+    }
+
     void CheckMessages()
     {
         if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
             return;
 
+        if (DataRequests.size() > 0) {
+            for (auto &[req, callback] : DataRequests) {
+                if (req.status == AP_RequestStatus::Pending) // What about stuck pending?
+                    continue;
+
+                //if (req.status == AP_RequestStatus::Error)
+
+                if (req.status == AP_RequestStatus::Done) {
+                    std::string value = *(std::string*)req.value;
+                    if (req.type == AP_DataType::Raw)
+                        callback(value);
+                }
+
+                free(req.value);
+                DataRequests.clear(); // TODO: conditional remove
+            }
+        }
+
         // No potential crashes here.
         LoadDatapackage();
-        GetSlotData();
 
         if (AP_IsMessagePending()) {
             AP_Message* msg = AP_GetLatestMessage();
@@ -378,7 +384,7 @@ namespace APClient
             return false;
         }
 
-        std::ifstream datapackage(LocalPath / ".datapkg-cache" / ("HatsuneMikuProjectDivaMegaMix-" + DatapackageChecksum + ".json"));
+        std::ifstream datapackage(BasePath / ".datapkg-cache" / ("HatsuneMikuProjectDivaMegaMix-" + DatapackageChecksum + ".json"));
 
         if (!datapackage.is_open())
             return false;
@@ -395,6 +401,7 @@ namespace APClient
             location_id_to_name[(int64_t)el.value()] = el.key();
 
         datapackageLoaded = true;
+
         return true;
     }
 
@@ -441,8 +448,11 @@ namespace APClient
             else
             {
                 if (ImGui::Button("Disconnect")) {
-                    reset();
                     AP_Shutdown();
+                    reset();
+
+                    if (!ImGui::GetIO().KeyShift)
+                        APReload::run();
                 }
 
                 ImGui::SameLine();

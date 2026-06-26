@@ -8,9 +8,7 @@
 
 namespace APSettings
 {
-    namespace fs = std::filesystem;
-    auto LocalPath = fs::current_path();
-    const fs::path SettingsTOML = LocalPath / "settings.toml";
+    const std::filesystem::path SettingsTOML = BasePath / "settings.toml";
 
     void load()
     {

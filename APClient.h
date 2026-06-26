@@ -31,17 +31,11 @@ namespace APClient
     void save(toml::table& settings);
     void reset();
 
-    AP_RequestStatus ServerDataRequest_Raw(std::string key, AP_GetServerDataRequest& request, bool& requested, std::string& output);
-
-    void GetSlotData();
-
-    void ItemClear();
-    void ItemRecv(int64_t itemID, bool notify);
     void PushRecvID(int64_t songID);
-    void LocationChecked(int64_t locationID);
     void LocationSend(int64_t pvID);
 
     void LogAppend(const std::string& text);
+    void DataRequest(const std::string key, const std::function<void(std::string raw)> callback);
     void CheckMessages();
 
     void RecvDeath(std::string src, std::string cause);

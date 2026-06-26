@@ -60,7 +60,6 @@ namespace APGUI
         ImGui::NewFrame();
 
         // auto hide client when in game, not paused, not on results
-        auto PvPlayData = 0x1412C2330;
         if (auto_hide_client && *(bool*)PvPlayData && !*(bool*)(PvPlayData + 0x1) && !*(bool*)(PvPlayData + 0x2D17D)) {
             ImGui::GetIO().WantCaptureKeyboard = false;
             ImGui::GetIO().WantCaptureMouse = false;

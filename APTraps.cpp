@@ -15,7 +15,6 @@ namespace APTraps
 
 	const uint64_t DivaGameControlConfig = 0x1401D6520;
 	const uint64_t PvControllerGlyphBase = 0x141133D30; // Copy of GCC Icon on load (0-12), original caller returns base glyph (0-2).
-	const uint64_t PvPlayData = 0x1412C2330;
 	//const uint64_t DivaGameModifier = PvPlayData + 0x2D120;
 	const uint64_t DivaGameTimer = PvPlayData + 0x2D33C;
 
