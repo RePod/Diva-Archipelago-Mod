@@ -60,20 +60,27 @@ namespace APReload
             run();
     }
 
-    void run()
+    bool canChangeState()
     {
-        int* state = (int*)0x14CC61078;
-        int* substate = (int*)0x14CC61094;
+        const int* state = (int*)0x14CC61078;
+        const int* substate = (int*)0x14CC61094;
 
         if (*state == 2 && *substate == 7 || *state == 0 /*|| *state == 3*/ || *state == 7) {
             // Init, test, and Cust. In game including FTUI, MV, practice, and results.
             // state 7: reproducible infinite load/crash when reloading on Cust screen with 4 or more charas.
             //          only covers main menu -> cust, not song list -> cust
             APLogger::print("Reloading blocked for state %i/%i\n", *state, *substate);
-            return;
+            return false;
         }
 
         APLogger::print("Reload < %i/%i\n", *state, *substate);
+        return true;
+    }
+
+    void run()
+    {
+        if (!canChangeState())
+            return;
 
         ChangeGameState(3);
 
@@ -84,7 +91,8 @@ namespace APReload
     void sleepStartup()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(reloadDelay * 100));
-        ChangeGameSubState(0, 1);
+        if (canChangeState())
+            ChangeGameSubState(0, 1);
     }
 
     void ChangeGameState(int32_t state)
