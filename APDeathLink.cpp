@@ -11,9 +11,9 @@ namespace APDeathLink
     int death_link_percent = 100; // Percentage of max HP to lose on receive. "If at or below this, die."
     float death_link_safety = 10.0f; // Seconds after receiving a DL to avoid chain reaction DLs.
 
-    const uint64_t DivaGameHP = 0x1412C2330 + 0x2D234;
-    const uint64_t DivaGameTimer = 0x1412C2330 + 0x2C010;
-    const uint64_t DivaSafetyWidthPercent = 0x1412C2330 + 0x2D314;
+    const uint64_t DivaGameHP = PvPlayData + 0x2D234;
+    const uint64_t DivaGameTimer = PvPlayData + 0x2C010;
+    const uint64_t DivaSafetyWidthPercent = PvPlayData + 0x2D314;
 
     // Internal
     int death_link_amnesty_count = 0;
@@ -327,7 +327,7 @@ namespace APDeathLink
                     ImGui::SameLine();
                     if (ImGui::Button("+NoFail##100")) {
                         deathLinked = true;
-                        WRITE_MEMORY(0x1412C2330 + 0x2D31D, bool, 0);
+                        WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
                         setHP(0);
                     }
 
@@ -337,7 +337,7 @@ namespace APDeathLink
 
                     ImGui::SameLine();
                     if (ImGui::Button("+NoFail##recv")) {
-                        WRITE_MEMORY(0x1412C2330 + 0x2D31D, bool, 0);
+                        WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
                         run(true);
                     }
 

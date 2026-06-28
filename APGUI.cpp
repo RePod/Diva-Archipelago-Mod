@@ -200,13 +200,9 @@ namespace APGUI
             }
 
             if (ImGui::CollapsingHeader("Developer Mode")) {
-                if (ImGui::Checkbox("Enable Developer Mode", &devMode)) devMode = false;
-                if (ImGui::BeginPopupContextItem("##xx")) {
-                    if (ImGui::MenuItem("Are you sure?##xx"))
-                        devMode = !devMode;
-
-                    ImGui::EndPopup();
-                }
+                ImGui::Checkbox("Enable Developer Mode", &devMode);
+                ImGui::SameLine();
+                HelpMarker("Dangerous! For the curious or the stuck.");
 
                 if (devMode) {
                     // Easy crashes with other mods that already freopen'd to stdout
@@ -244,7 +240,9 @@ namespace APGUI
 
                     ImGui::SameLine();
                     HelpMarker("Fills the IDHandler with \"random\" IDs up to 10000.\n"
-                        "Try toggling Freeplay from the Tracker tab.");
+                        "Try toggling Freeplay from the Tracker tab.\n"
+                        "Effectively an offline Archipelago."
+                    );
 
                     ImGui::SameLine();
                     ImGui::Text("%d/%d recv/seed", APClient::recvIDs.size(), APClient::seedIDs.size());
