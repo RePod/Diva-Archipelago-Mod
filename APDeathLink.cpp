@@ -232,7 +232,7 @@ namespace APDeathLink
             }
         }
 
-        if (deathLinked || !received)
+        if (!death_link || deathLinked || !received)
             return;
 
         lastDeathLink = now;
