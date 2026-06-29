@@ -261,7 +261,6 @@ namespace APDeathLink
 
     void ImGuiTab()
     {
-        if (ImGui::BeginTabItem("Death Link")) {
             if (devMode || HPdenominator > 1) {
                 float progress = (float)min(HPdenominator, (HPdenominator - HPnumerator)) / (float)HPdenominator;
                 char buf[8];
@@ -347,8 +346,5 @@ namespace APDeathLink
                     HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
                 }
             }
-
-            ImGui::EndTabItem();
-        }
     }
 }

@@ -41,7 +41,7 @@ namespace APGUI
         ImGui::CreateContext();
         ImGui::StyleColorsDark();
 
-        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
         ImGuiStyle& style = ImGui::GetStyle();
         style.ScaleAllSizes(main_scale);
@@ -71,26 +71,62 @@ namespace APGUI
             return;
         }
 
+        ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+
         if (showImGuiDemo)
             ImGui::ShowDemoWindow();
 
-        ImGui::Begin("Archipelago Mod###APClient", NULL,
-                    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing);
+        ImGuiID client_dockspace_id = ImGui::GetID("client");
+        //ImGui::DockSpace(client_dockspace_id);
 
-        if (ImGui::BeginTabBar("APTabs" /*, ImGuiTabBarFlags_Reorderable*/)) {
-            APClient::ImGuiTab();
+        ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+        ImGui::Begin("Client###APClient", NULL/*, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing*/);
+        APClient::ImGuiTab();
+        ImGui::End();
 
-            if (devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
-                APIDHandler::ImGuiTab();
-                APHints::ImGuiTab();
-                APDeathLink::ImGuiTab();
-                APTraps::ImGuiTab();
-            }
+        if (devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+            ImGui::Begin("Tracker");
+            APIDHandler::ImGuiTab();
+            ImGui::End();
 
-            APGUI::ImGuiTab();
+            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+            ImGui::Begin("Hints");
+            APHints::ImGuiTab();
+            ImGui::End();
 
-            ImGui::EndTabBar();
+            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+            ImGui::Begin("Death Link");
+            APDeathLink::ImGuiTab();
+            ImGui::End();
+
+            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+            ImGui::Begin("Traps");
+            APTraps::ImGuiTab();
+            ImGui::End();
         }
+
+        ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+        ImGui::Begin("Advanced");
+        APGUI::ImGuiTab();
+        ImGui::End();
+
+        //ImGui::End();
+
+        //if (ImGui::BeginTabBar("APTabs" /*, ImGuiTabBarFlags_Reorderable*/)) {
+        //    APClient::ImGuiTab();
+
+        //    if (devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+        //        APIDHandler::ImGuiTab();
+        //        APHints::ImGuiTab();
+        //        APDeathLink::ImGuiTab();
+        //        APTraps::ImGuiTab();
+        //    }
+
+        //
+
+        //    ImGui::EndTabBar();
+        //}
 
         if (!firstFrame)
         {
@@ -106,8 +142,6 @@ namespace APGUI
         }
 
         warning();
-
-        ImGui::End();
 
         ImGui::Render();
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -171,87 +205,83 @@ namespace APGUI
 
     void ImGuiTab()
     {
-        if (ImGui::BeginTabItem("Advanced")) {
-            ImGui::Checkbox("Hide window during gameplay", &auto_hide_client);
-            APSettings::ImGuiTab();
+        ImGui::Checkbox("Hide window during gameplay", &auto_hide_client);
+        APSettings::ImGuiTab();
 
-            ImGui::Separator();
+        ImGui::Separator();
 
-            if (ImGui::CollapsingHeader("Help")) {
-                /*if (ImGui::Button("Show first run warning")) {
-                    showWarning = true;
-                    warning();
+        if (ImGui::CollapsingHeader("Help")) {
+            /*if (ImGui::Button("Show first run warning")) {
+                showWarning = true;
+                warning();
+            }*/
+            ImGui::TextLinkOpenURL("Archipelago website", "https://archipelago.gg");
+            ImGui::TextLinkOpenURL("Project Diva AP documentation", "https://github.com/Cynichill/DivaAPworld/tree/main/docs");
+            ImGui::TextLinkOpenURL("Project Diva AP Discord thread", "https://discord.com/channels/731205301247803413/1241134454391443580");
+        }
+
+        APReload::ImGuiTab();
+
+        if (ImGui::CollapsingHeader("Styling")) {
+            ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
+            ImGui::DragFloat("Font DPI Scale", &ImGui::GetStyle().FontScaleDpi, 0.02f, 0.75f, 4.0f, "%.02f");
+            ImGui::SameLine();
+            HelpMarker("1.25 recommended for 1440p\n1.75 recommended for 4K");
+
+            if (ImGui::DragFloat("Global Alpha", &ImGui::GetStyle().Alpha, 0.01f, 0.50f, 1.0f, "%.2f"))
+                ImGui::GetStyle().Alpha = max(ImGui::GetStyle().Alpha, 0.5f); // unlike the demo, actually prevent a 0
+        }
+
+        if (ImGui::CollapsingHeader("Developer Mode")) {
+            ImGui::Checkbox("Enable Developer Mode", &devMode);
+            ImGui::SameLine();
+            HelpMarker("Dangerous! For the curious or the stuck.");
+
+            if (devMode) {
+                // Easy crashes with other mods that already freopen'd to stdout
+                /*if (!GetConsoleWindow() && ImGui::Button("Console")) {
+                    AllocConsole();
+                    APLogger::print("DO NOT CLOSE THIS WINDOW OR THE GAME WILL CLOSE\n");
                 }*/
-                ImGui::TextLinkOpenURL("Archipelago website", "https://archipelago.gg");
-                ImGui::TextLinkOpenURL("Project Diva AP documentation", "https://github.com/Cynichill/DivaAPworld/tree/main/docs");
-                ImGui::TextLinkOpenURL("Project Diva AP Discord thread", "https://discord.com/channels/731205301247803413/1241134454391443580");
-            }
 
-            APReload::ImGuiTab();
+                if (ImGui::Button("Reset")) {
+                    APClient::seedIDs.clear();
+                    APClient::recvIDs.clear();
+                    APClient::missingIDs.clear();
 
-            if (ImGui::CollapsingHeader("Styling")) {
-                ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
-                ImGui::DragFloat("Font DPI Scale", &ImGui::GetStyle().FontScaleDpi, 0.02f, 0.75f, 4.0f, "%.02f");
-                ImGui::SameLine();
-                HelpMarker("1.25 recommended for 1440p\n1.75 recommended for 4K");
-
-                if (ImGui::DragFloat("Global Alpha", &ImGui::GetStyle().Alpha, 0.01f, 0.50f, 1.0f, "%.2f"))
-                    ImGui::GetStyle().Alpha = max(ImGui::GetStyle().Alpha, 0.5f); // unlike the demo, actually prevent a 0
-            }
-
-            if (ImGui::CollapsingHeader("Developer Mode")) {
-                ImGui::Checkbox("Enable Developer Mode", &devMode);
-                ImGui::SameLine();
-                HelpMarker("Dangerous! For the curious or the stuck.");
-
-                if (devMode) {
-                    // Easy crashes with other mods that already freopen'd to stdout
-                    /*if (!GetConsoleWindow() && ImGui::Button("Console")) {
-                        AllocConsole();
-                        APLogger::print("DO NOT CLOSE THIS WINDOW OR THE GAME WILL CLOSE\n");
-                    }*/
-
-                    if (ImGui::Button("Reset")) {
-                        APClient::seedIDs.clear();
-                        APClient::recvIDs.clear();
-                        APClient::missingIDs.clear();
-
-                        APReload::run();
-                    }
-
-                    ImGui::SameLine();
-                    if (ImGui::Button("Sample Random IDs")) {
-                        APClient::seedIDs.clear();
-                        APClient::seedIDs.push_back(0); // Prevent seedIDs == recvIDs
-                        APClient::recvIDs.clear();
-
-                        // This doesn't need good random. The biggest issue it will have is picking a valid ID.
-                        for (int i = 0; i < 500; ++i)
-                        {
-                            int id = rand() % 10000 + 1;
-                            APClient::seedIDs.push_back(id);
-
-                            if (rand() % (rand() % 10 + 1) == 1)
-                                APClient::PushRecvID(id);
-                        }
-
-                        APReload::run();
-                    }
-
-                    ImGui::SameLine();
-                    HelpMarker("Fills the IDHandler with \"random\" IDs up to 10000.\n"
-                        "Try toggling Freeplay from the Tracker tab.\n"
-                        "Effectively an offline Archipelago."
-                    );
-
-                    ImGui::SameLine();
-                    ImGui::Text("%d/%d recv/seed", APClient::recvIDs.size(), APClient::seedIDs.size());
-
-                    APLogger::ImGuiTab();
+                    APReload::run();
                 }
-            }
 
-            ImGui::EndTabItem();
+                ImGui::SameLine();
+                if (ImGui::Button("Sample Random IDs")) {
+                    APClient::seedIDs.clear();
+                    APClient::seedIDs.push_back(0); // Prevent seedIDs == recvIDs
+                    APClient::recvIDs.clear();
+
+                    // This doesn't need good random. The biggest issue it will have is picking a valid ID.
+                    for (int i = 0; i < 500; ++i)
+                    {
+                        int id = rand() % 10000 + 1;
+                        APClient::seedIDs.push_back(id);
+
+                        if (rand() % (rand() % 10 + 1) == 1)
+                            APClient::PushRecvID(id);
+                    }
+
+                    APReload::run();
+                }
+
+                ImGui::SameLine();
+                HelpMarker("Fills the IDHandler with \"random\" IDs up to 10000.\n"
+                    "Try toggling Freeplay from the Tracker tab.\n"
+                    "Effectively an offline Archipelago."
+                );
+
+                ImGui::SameLine();
+                ImGui::Text("%d/%d recv/seed", APClient::recvIDs.size(), APClient::seedIDs.size());
+
+                APLogger::ImGuiTab();
+            }
         }
     }
 }

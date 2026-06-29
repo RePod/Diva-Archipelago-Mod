@@ -407,7 +407,7 @@ namespace APClient
 
     void ImGuiTab()
     {
-        if (ImGui::BeginTabItem("Client")) {
+        //if (ImGui::BeginTabItem("Client")) {
             if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
             {
                 if (AP_IsInit())
@@ -537,7 +537,7 @@ namespace APClient
                 HelpMarker(goalTip.c_str());
             }
 
-            ImGui::EndTabItem();
-        }
+        /*    ImGui::EndTabItem();
+        }*/
     }
 }

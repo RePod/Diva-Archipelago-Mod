@@ -23,6 +23,7 @@
 #include <thread>
 #include <toml++/toml.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <detours.h>
 #include <Archipelago.h>
 #include "APLogger.h"

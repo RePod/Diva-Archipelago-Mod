@@ -241,7 +241,6 @@ namespace APTraps
 
 	void ImGuiTab()
 	{
-		if (ImGui::BeginTabItem("Traps")) {
 			char buf[32];
 			float songLength = *(float*)(PvPlayData + 0x2D338);
 			sprintf(buf, "%.03f / %.03f", getGameTime(), songLength);
@@ -303,8 +302,5 @@ namespace APTraps
 					ImGui::EndTable();
 				}
 			}
-
-			ImGui::EndTabItem();
-		}
 	}
 }
