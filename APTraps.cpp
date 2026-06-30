@@ -241,66 +241,66 @@ namespace APTraps
 
 	void ImGuiTab()
 	{
-			char buf[32];
-			float songLength = *(float*)(PvPlayData + 0x2D338);
-			sprintf(buf, "%.03f / %.03f", getGameTime(), songLength);
-			ImGui::ProgressBar(getGameTime() / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
+		char buf[32];
+		float songLength = *(float*)(PvPlayData + 0x2D338);
+		sprintf(buf, "%.03f / %.03f", getGameTime(), songLength);
+		ImGui::ProgressBar(getGameTime() / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
 
-			ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds");
+		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds");
+		ImGui::SameLine();
+		HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
+
+		ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds");
+		ImGui::SameLine();
+		HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
+
+		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
+		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
+
+		if (devMode) {
+			ImGui::Separator();
+
+			if (ImGui::Button("Sudden"))
+				touchSudden();
 			ImGui::SameLine();
-			HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
-
-			ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds");
+			if (ImGui::Button("Hidden"))
+				touchHidden();
 			ImGui::SameLine();
-			HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
+			if (ImGui::Button("Icon"))
+				touchIcon();
 
-			ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
-			ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
-
-			if (devMode) {
-				ImGui::Separator();
-
-				if (ImGui::Button("Sudden"))
-					touchSudden();
-				ImGui::SameLine();
-				if (ImGui::Button("Hidden"))
-					touchHidden();
-				ImGui::SameLine();
-				if (ImGui::Button("Icon"))
-					touchIcon();
-
-				if (ImGui::BeginTable("tableTraps", 2))
+			if (ImGui::BeginTable("tableTraps", 2))
+			{
+				if (isSudden)
 				{
-					if (isSudden)
-					{
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("Sudden");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("%.02f", trapDuration + timestampSudden - getGameTime());
-					}
-
-					if (isHidden)
-					{
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("Hidden");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
-					}
-
-					if (savedIcon <= 12)
-					{
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("Icon");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("%.02f %i / %i", trapDuration + timestampIconStart - getGameTime(), getCurrentIcon(),
-									*reinterpret_cast<uint8_t*>(PvControllerGlyphBase));
-					}
-
-					ImGui::EndTable();
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sudden");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.02f", trapDuration + timestampSudden - getGameTime());
 				}
+
+				if (isHidden)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Hidden");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
+				}
+
+				if (savedIcon <= 12)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Icon");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.02f %i / %i", trapDuration + timestampIconStart - getGameTime(), getCurrentIcon(),
+								*reinterpret_cast<uint8_t*>(PvControllerGlyphBase));
+				}
+
+				ImGui::EndTable();
 			}
+		}
 	}
 }

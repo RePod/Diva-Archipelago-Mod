@@ -118,7 +118,10 @@ namespace APIDHandler
 	void ImGuiTab()
 	{
 		updateTrackerLine();
-		ImGui::Text(trackerLine.c_str());
+
+		ImGui::PushTextWrapPos(0.0f);
+		ImGui::TextUnformatted(trackerLine.c_str());
+		ImGui::PopTextWrapPos();
 
 		if (ImGui::BeginTable("tableTrackerOptions", 2, ImGuiTableFlags_SizingStretchSame))
 		{

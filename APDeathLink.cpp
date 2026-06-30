@@ -261,90 +261,90 @@ namespace APDeathLink
 
     void ImGuiTab()
     {
-            if (devMode || HPdenominator > 1) {
-                float progress = (float)min(HPdenominator, (HPdenominator - HPnumerator)) / (float)HPdenominator;
-                char buf[8];
-                sprintf(buf, "%d / %d", HPnumerator, HPdenominator);
+        if (devMode || HPdenominator > 1) {
+            float progress = (float)min(HPdenominator, (HPdenominator - HPnumerator)) / (float)HPdenominator;
+            char buf[8];
+            sprintf(buf, "%d / %d", HPnumerator, HPdenominator);
 
-                ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f), buf);
-                ImGui::SameLine();
-                ImGui::Text("Progressive HP");
-
-                if (ImGui::Button("Reset##progReset"))
-                    HPtemp = 0;
-
-                ImGui::SameLine();
-                if (ImGui::Button("+1##progTemp+1"))
-                    HPtemp += 1;
-
-
-                ImGui::SameLine();
-                ImGui::Text("Temporary HP: %d+%d", HPreceived, HPtemp);
-
-                ImGui::SameLine();
-                HelpMarker("Temporarily increase available chunk count.\nResets when the next one is received.");
-
-                if (devMode)
-                    ImGui::SliderInt("Denominator", &HPdenominator, 1, 20);
-
-                ImGui::Separator();
-            }
-
-            ImGui::Checkbox("Death Link", &death_link);
+            ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f), buf);
             ImGui::SameLine();
-            HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
+            ImGui::Text("Progressive HP");
 
-            if (death_link) {
-                if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20))
-                    death_link_amnesty_count = death_link_amnesty;
-                ImGui::SameLine();
-                HelpMarker("Amount of additional own deaths needed before sending one Death Link. 0 would be every death, 1 every other, etc.");
+            if (ImGui::Button("Reset##progReset"))
+                HPtemp = 0;
 
-                if (death_link_amnesty > 0) {
-                    char overlay[64];
-                    sprintf(overlay, "%d / %d deaths", death_link_amnesty - death_link_amnesty_count, death_link_amnesty);
-                    ImGui::ProgressBar(static_cast<float>(death_link_amnesty - death_link_amnesty_count) / static_cast<float>(death_link_amnesty), ImVec2(0,0), overlay);
-                }
+            ImGui::SameLine();
+            if (ImGui::Button("+1##progTemp+1"))
+                HPtemp += 1;
 
-                ImGui::SliderInt("Death Link Percent", &death_link_percent, 0, 100, "%d%%");
-                ImGui::SameLine();
-                HelpMarker("Percent of max HP to lose on receive.\n<100 for non-lethal, but makes Life Bonuses harder which may affect score by up to 2%.");
 
-                ImGui::SliderFloat("Death Link Safety", &death_link_safety, 0.0f, 30.0f, "%.1f seconds");
-                ImGui::SameLine();
-                HelpMarker("Seconds after receiving where dying does not send one out.");
+            ImGui::SameLine();
+            ImGui::Text("Temporary HP: %d+%d", HPreceived, HPtemp);
 
-                if (devMode)
-                {
-                    ImGui::Separator();
+            ImGui::SameLine();
+            HelpMarker("Temporarily increase available chunk count.\nResets when the next one is received.");
 
-                    if (ImGui::Button("100%")) {
-                        deathLinked = true;
-                        setHP(0);
-                    }
+            if (devMode)
+                ImGui::SliderInt("Denominator", &HPdenominator, 1, 20);
 
-                    ImGui::SameLine();
-                    if (ImGui::Button("+NoFail##100")) {
-                        deathLinked = true;
-                        WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
-                        setHP(0);
-                    }
+            ImGui::Separator();
+        }
 
-                    ImGui::SameLine();
-                    if (ImGui::Button("Recv"))
-                        run(true);
+        ImGui::Checkbox("Death Link", &death_link);
+        ImGui::SameLine();
+        HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
 
-                    ImGui::SameLine();
-                    if (ImGui::Button("+NoFail##recv")) {
-                        WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
-                        run(true);
-                    }
+        if (death_link) {
+            if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20))
+                death_link_amnesty_count = death_link_amnesty;
+            ImGui::SameLine();
+            HelpMarker("Amount of additional own deaths needed before sending one Death Link. 0 would be every death, 1 every other, etc.");
 
-                    ImGui::SameLine();
-                    ImGui::Text("Linked: %d", deathLinked);
-                    ImGui::SameLine();
-                    HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
-                }
+            if (death_link_amnesty > 0) {
+                char overlay[64];
+                sprintf(overlay, "%d / %d deaths", death_link_amnesty - death_link_amnesty_count, death_link_amnesty);
+                ImGui::ProgressBar(static_cast<float>(death_link_amnesty - death_link_amnesty_count) / static_cast<float>(death_link_amnesty), ImVec2(0,0), overlay);
             }
+
+            ImGui::SliderInt("Death Link Percent", &death_link_percent, 0, 100, "%d%%");
+            ImGui::SameLine();
+            HelpMarker("Percent of max HP to lose on receive.\n<100 for non-lethal, but makes Life Bonuses harder which may affect score by up to 2%.");
+
+            ImGui::SliderFloat("Death Link Safety", &death_link_safety, 0.0f, 30.0f, "%.1f seconds");
+            ImGui::SameLine();
+            HelpMarker("Seconds after receiving where dying does not send one out.");
+
+            if (devMode)
+            {
+                ImGui::Separator();
+
+                if (ImGui::Button("100%")) {
+                    deathLinked = true;
+                    setHP(0);
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("+NoFail##100")) {
+                    deathLinked = true;
+                    WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
+                    setHP(0);
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Recv"))
+                    run(true);
+
+                ImGui::SameLine();
+                if (ImGui::Button("+NoFail##recv")) {
+                    WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
+                    run(true);
+                }
+
+                ImGui::SameLine();
+                ImGui::Text("Linked: %d", deathLinked);
+                ImGui::SameLine();
+                HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
+            }
+        }
     }
 }

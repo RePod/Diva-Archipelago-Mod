@@ -130,6 +130,7 @@ namespace APClient
             std::sort(seedIDs.begin(), seedIDs.end());
         }
 
+        ImGui::SetWindowFocus("Client");
         APReload::run();
         APTraps::reset();
         UpdateMissing();
@@ -408,136 +409,133 @@ namespace APClient
     void ImGuiTab()
     {
         //if (ImGui::BeginTabItem("Client")) {
-            if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
-            {
-                if (AP_IsInit())
-                    ImGui::BeginDisabled();
+        if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
+        {
+            if (AP_IsInit())
+                ImGui::BeginDisabled();
 
-                ImGui::InputText("Slot Name", slotName, sizeof(slotName));
-                ImGui::InputText("Server", slotServer, sizeof(slotServer), !hideServer ? 0 : ImGuiInputTextFlags_Password);
-                if (ImGui::BeginPopupContextItem("##hideServer")) {
-                    ImGui::MenuItem("Hide server", NULL, &hideServer);
-                    ImGui::EndPopup();
-                }
-                ImGui::SameLine();
-                HelpMarker(
-                    "Server address must have the port number.\nRight-click input to toggle visibility."
-                    "\n\nExample addresses:\n archipelago.gg:38281\n localhost:38281\n 127.0.0.1:38281"
-                );
-
-                ImGui::InputText("Password", slotPassword, sizeof(slotPassword), ImGuiInputTextFlags_Password);
-
-                if (AP_IsInit())
-                    ImGui::EndDisabled();
-
-                bool disconnected = AP_GetConnectionStatus() == AP_ConnectionStatus::Disconnected;
-                bool refused = AP_GetConnectionStatus() == AP_ConnectionStatus::ConnectionRefused;
-
-                if (disconnected || refused)
-                    if (!AP_IsInit()) {
-                        if (ImGui::Button("Connect"))
-                            connect();
-                    }
-                    else {
-                        if (ImGui::Button("Cancel"))
-                            AP_Shutdown();
-                        ImGui::SameLine();
-                        ImGui::Text(refused ? "Wrong Name/Server/Password" : "Connecting...");
-                    }
+            ImGui::InputText("Slot Name", slotName, sizeof(slotName));
+            ImGui::InputText("Server", slotServer, sizeof(slotServer), !hideServer ? 0 : ImGuiInputTextFlags_Password);
+            if (ImGui::BeginPopupContextItem("##hideServer")) {
+                ImGui::MenuItem("Hide server", nullptr, &hideServer);
+                ImGui::EndPopup();
             }
-            else
-            {
-                if (ImGui::Button("Disconnect")) {
-                    AP_Shutdown();
-                    reset();
+            ImGui::SameLine();
+            HelpMarker(
+                "Server address must have the port number.\nRight-click input to toggle visibility."
+                "\n\nExample addresses:\n archipelago.gg:38281\n localhost:38281\n 127.0.0.1:38281"
+            );
 
-                    if (!ImGui::GetIO().KeyShift)
-                        APReload::run();
-                }
+            ImGui::InputText("Password", slotPassword, sizeof(slotPassword), ImGuiInputTextFlags_Password);
 
-                ImGui::SameLine();
-                ImGui::Text("Connected as %s", slotName);
+            if (AP_IsInit())
+                ImGui::EndDisabled();
 
-                ImGui::SameLine();
-                if (ImGui::Button("Reload"))
-                    APReload::run();
+            bool disconnected = AP_GetConnectionStatus() == AP_ConnectionStatus::Disconnected;
+            bool refused = AP_GetConnectionStatus() == AP_ConnectionStatus::ConnectionRefused;
 
-                if (ImGui::IsItemHovered()) {
-                    ImGui::BeginTooltip();
-                    ImGui::Text("Reload key: %s", APReload::reloadVal);
-                    ImGui::EndTooltip();
-                }
-
-                ImGui::Separator();
-
-                ImGui::BeginChild("APLog", ImVec2(0, 250));
-
-                if (APLogCopyMode) {
-                    ImGui::InputTextMultiline(
-                        "##APLogMulti",
-                        (char*)APLog.c_str(),
-                        APLog.size() + 1,
-                        ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y),
-                        ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_WordWrap
-                    );
+            if (disconnected || refused)
+                if (!AP_IsInit()) {
+                    if (ImGui::Button("Connect"))
+                        connect();
                 }
                 else {
-                    ImGui::BeginChild("APLogUnformatted");
-
-                    ImGui::PushTextWrapPos(0.0f);
-
-                    std::istringstream stream(APLog);
-                    std::string line;
-
-                    while (std::getline(stream, line)) {
-                        ImGui::TextUnformatted(line.c_str());
-                    }
-
-                    ImGui::PopTextWrapPos();
-
-                    if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0f)
-                        ImGui::SetScrollHereY(1.0f);
-
-                    ImGui::EndChild();
+                    if (ImGui::Button("Cancel"))
+                        AP_Shutdown();
+                    ImGui::SameLine();
+                    ImGui::Text(refused ? "Wrong Name/Server/Password" : "Connecting...");
                 }
+        }
+        else
+        {
+            if (ImGui::Button("Disconnect")) {
+                AP_Shutdown();
+                reset();
 
-                if (ImGui::BeginPopupContextItem("##xx")) {
-                    ImGui::MenuItem("Copy mode (no autoscroll)", NULL, &APLogCopyMode);
-                    if (ImGui::MenuItem("Clear")) APLog.clear();
-                    ImGui::EndPopup();
-                }
-
-                ImGui::EndChild();
-
-                ImGui::Separator();
-
-                static bool refocus = false;
-                if (refocus) {
-                    refocus = false;
-                    ImGui::SetKeyboardFocusHere();
-                }
-
-                if (ImGui::InputText("##APsay", say, sizeof(say), ImGuiInputTextFlags_EnterReturnsTrue))
-                {
-                    refocus = true;
-                    if (strlen(say) > 0) {
-                        AP_Say(std::string(say));
-                        say[0] = '\0';
-                    }
-                }
-
-                ImGui::SameLine();
-                ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
-
-                // TODO: Relocate
-                std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID] + "\n"
-                                      "Clear grade needed: " + (std::string)diffs[clearGrade - 1];
-
-                ImGui::SameLine();
-                HelpMarker(goalTip.c_str());
+                if (!ImGui::GetIO().KeyShift)
+                    APReload::run();
             }
 
-        /*    ImGui::EndTabItem();
-        }*/
+            ImGui::SameLine();
+            ImGui::Text("Connected as %s", slotName);
+
+            ImGui::SameLine();
+            if (ImGui::Button("Reload"))
+                APReload::run();
+
+            if (ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::Text("Reload key: %s", APReload::reloadVal);
+                ImGui::EndTooltip();
+            }
+
+            ImGui::Separator();
+
+            ImGui::BeginChild("APLog", ImVec2(0, ImGui::GetContentRegionAvail().y - (ImGui::GetFrameHeightWithSpacing() * 1.2f)));
+
+            if (APLogCopyMode) {
+                ImGui::InputTextMultiline(
+                    "##APLogMulti",
+                    (char*)APLog.c_str(),
+                    APLog.size() + 1,
+                    ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y),
+                    ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_WordWrap
+                );
+            }
+            else {
+                ImGui::BeginChild("APLogUnformatted");
+
+                ImGui::PushTextWrapPos(0.0f);
+
+                std::istringstream stream(APLog);
+                std::string line;
+
+                while (std::getline(stream, line)) {
+                    ImGui::TextUnformatted(line.c_str());
+                }
+
+                ImGui::PopTextWrapPos();
+
+                if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 1.0f)
+                    ImGui::SetScrollHereY(1.0f);
+
+                ImGui::EndChild();
+            }
+
+            if (ImGui::BeginPopupContextItem("##xx")) {
+                ImGui::MenuItem("Copy mode (no autoscroll)", nullptr, &APLogCopyMode);
+                if (ImGui::MenuItem("Clear")) APLog.clear();
+                ImGui::EndPopup();
+            }
+
+            ImGui::EndChild();
+
+            ImGui::Separator();
+
+            static bool refocus = false;
+            if (refocus) {
+                refocus = false;
+                ImGui::SetKeyboardFocusHere();
+            }
+
+            if (ImGui::InputText("##APsay", say, sizeof(say), ImGuiInputTextFlags_EnterReturnsTrue))
+            {
+                refocus = true;
+                if (strlen(say) > 0) {
+                    AP_Say(std::string(say));
+                    say[0] = '\0';
+                }
+            }
+
+            ImGui::SameLine();
+            ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
+
+            // TODO: Relocate
+            std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID] + "\n"
+                                    "Clear grade needed: " + (std::string)diffs[clearGrade - 1];
+
+            ImGui::SameLine();
+            HelpMarker(goalTip.c_str());
+        }
     }
 }

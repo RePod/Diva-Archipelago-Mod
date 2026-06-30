@@ -31,7 +31,7 @@ namespace APLogger
     {
         char line[512];
 
-        time_t t = time(NULL);
+        time_t t = time(nullptr);
         struct tm tm;
         localtime_s(&tm, &t);
 

@@ -12,12 +12,23 @@ namespace APGUI
 {
     // Configurables
 
-    bool auto_hide_client = true; // Hide Client during gameplay
     bool& devMode = APClient::devMode;
+    bool enableDocking = false;
+    bool autoHideClient = true; // Hide Client during gameplay
     bool showWarning = true; // First run warning
+    float alphaDefault = 1.0f;
+    float alphaIngame = 1.0f;
 
     bool showImGuiDemo = false;
     bool firstFrame = true;
+
+    // TODO: Move names into own namespace?
+    std::vector<std::pair<const char*, std::function<void()>>> windows = {
+        { "Tracker", APIDHandler::ImGuiTab },
+        { "Hints", APHints::ImGuiTab },
+        { "Death Link", APDeathLink::ImGuiTab },
+        { "Traps", APTraps::ImGuiTab },
+    };
 
     ID3D11Device* g_Device = nullptr;
     ID3D11DeviceContext* g_Context = nullptr;
@@ -59,8 +70,13 @@ namespace APGUI
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
+        // Weird focus behavior on create so keep every frame.
+        ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingOverCentralNode);
+
         // auto hide client when in game, not paused, not on results
-        if (auto_hide_client && *(bool*)PvPlayData && !*(bool*)(PvPlayData + 0x1) && !*(bool*)(PvPlayData + 0x2D17D)) {
+        bool ingame = *(bool*)PvPlayData && !*(bool*)(PvPlayData + 0x1) && !*(bool*)(PvPlayData + 0x2D17D);
+        if (ingame && autoHideClient) {
+            ImGui::SetWindowFocus(nullptr);
             ImGui::GetIO().WantCaptureKeyboard = false;
             ImGui::GetIO().WantCaptureMouse = false;
             ImGui::SetNextFrameWantCaptureKeyboard(false);
@@ -70,8 +86,7 @@ namespace APGUI
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
             return;
         }
-
-        ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode);
+        ImGui::GetStyle().Alpha = ingame ? alphaIngame : alphaDefault;
 
         if (showImGuiDemo)
             ImGui::ShowDemoWindow();
@@ -79,66 +94,70 @@ namespace APGUI
         ImGuiID client_dockspace_id = ImGui::GetID("client");
         //ImGui::DockSpace(client_dockspace_id);
 
-        ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
-        ImGui::Begin("Client###APClient", NULL/*, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing*/);
-        APClient::ImGuiTab();
-        ImGui::End();
-
-        if (devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+        if (enableDocking) {
             ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
-            ImGui::Begin("Tracker");
-            APIDHandler::ImGuiTab();
-            ImGui::End();
-
-            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
-            ImGui::Begin("Hints");
-            APHints::ImGuiTab();
-            ImGui::End();
-
-            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
-            ImGui::Begin("Death Link");
-            APDeathLink::ImGuiTab();
-            ImGui::End();
-
-            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
-            ImGui::Begin("Traps");
-            APTraps::ImGuiTab();
+            ImGui::Begin("Client", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+            APClient::ImGuiTab();
             ImGui::End();
         }
+        else {
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoFocusOnAppearing;
+            //if (firstFrame)
+            //flags |= ImGuiWindowFlags_AlwaysAutoResize;
+            ImGui::SetNextWindowSizeConstraints(ImVec2(360, 180), ImVec2(FLT_MAX, FLT_MAX));
+            ImGui::Begin("Archipelago Mod", nullptr, flags);
 
-        ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
-        ImGui::Begin("Advanced");
-        APGUI::ImGuiTab();
-        ImGui::End();
+            ImGui::BeginTabBar("##clientTabs");
+            if (ImGui::BeginTabItem("Client", nullptr/*, ImGuiTabItemFlags_SetSelected */)) {
+                APClient::ImGuiTab();
+                ImGui::EndTabItem();
+            }
+        }
 
-        //ImGui::End();
+        if (devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+            for (const auto& [name, contents] : windows) {
+                if (enableDocking) {
+                    ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+                    ImGui::Begin(name, nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+                    contents();
+                    ImGui::End();
+                }
+                else {
+                    if (ImGui::BeginTabItem(name)) {
+                        contents();
+                        ImGui::EndTabItem();
+                    }
+                }
+            }
+        }
 
-        //if (ImGui::BeginTabBar("APTabs" /*, ImGuiTabBarFlags_Reorderable*/)) {
-        //    APClient::ImGuiTab();
-
-        //    if (devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
-        //        APIDHandler::ImGuiTab();
-        //        APHints::ImGuiTab();
-        //        APDeathLink::ImGuiTab();
-        //        APTraps::ImGuiTab();
-        //    }
-
-        //
-
-        //    ImGui::EndTabBar();
-        //}
-
-        if (!firstFrame)
-        {
+        if (firstFrame) {
+            firstFrame = false;
+            ImGui::SetWindowFocus("Client");
+            ImGui::SetWindowFocus(0);
+        }
+        else {
             ImVec2 display_size = ImGui::GetIO().DisplaySize;
             ImVec2 window_pos = ImVec2(display_size.x - ImGui::GetWindowWidth() - (display_size.x * static_cast<float>(0.01)),
-                                       display_size.y - ImGui::GetWindowHeight() - (display_size.y * static_cast<float>(0.01)));
+                display_size.y - ImGui::GetWindowHeight() - (display_size.y * static_cast<float>(0.01)));
 
             ImGui::SetWindowPos(window_pos, ImGuiCond_FirstUseEver);
         }
+
+        if (enableDocking) {
+            ImGui::SetNextWindowDockID(client_dockspace_id, ImGuiCond_FirstUseEver);
+            ImGui::Begin("Advanced", nullptr, ImGuiWindowFlags_NoFocusOnAppearing);
+            APGUI::ImGuiTab();
+            ImGui::End();
+        }
         else {
-            firstFrame = false;
-            ImGui::SetWindowFocus(0);
+            if (ImGui::BeginTabItem("Advanced")) {
+                APGUI::ImGuiTab();
+                ImGui::EndTabItem();
+            }
+
+            ImGui::EndTabBar();
+            ImGui::End();
         }
 
         warning();
@@ -153,22 +172,31 @@ namespace APGUI
         if (settings.contains("gui") && settings["gui"].is_table())
             section = *settings["gui"].as_table();
 
-        auto_hide_client = section["auto_hide_client"].value_or(true);
+        autoHideClient = section["autoHideClient"].value_or(true);
         showWarning = section["warning"].value_or(true);
+        enableDocking = section["docking"].value_or(false);
 
         float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
-        auto scale = section["font_scale"].value_or(main_scale);
+        auto scale = section["fontScale"].value_or(main_scale);
         scale = std::clamp(scale, 0.75f, 4.0f);
-
         ImGui::GetStyle().FontScaleDpi = scale;
+
+        float _alphaDefault = section["alphaDefault"].value_or(1.0f);
+        alphaDefault = std::clamp(_alphaDefault, 0.5f, 1.0f);
+
+        float _alphaIngame = section["alphaIngame"].value_or(1.0f);
+        alphaIngame = std::clamp(_alphaIngame, 0.1f, 1.0f);
     }
 
     void save(toml::table &settings)
     {
         toml::table config;
-        config.insert("auto_hide_client", auto_hide_client);
-        config.insert("font_scale", ImGui::GetStyle().FontScaleDpi);
+        config.insert("autoHideClient", autoHideClient);
+        config.insert("docking", enableDocking);
+        config.insert("fontScale", ImGui::GetStyle().FontScaleDpi);
         config.insert("warning", showWarning);
+        config.insert("alphaDefault", alphaDefault);
+        config.insert("alphaIngame", alphaIngame);
 
         settings.insert("gui", config);
     }
@@ -179,7 +207,7 @@ namespace APGUI
             return;
 
         ImGui::OpenPopup("Archipelago Mod - First Run");
-        if (ImGui::BeginPopupModal("Archipelago Mod - First Run", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize))
+        if (ImGui::BeginPopupModal("Archipelago Mod - First Run", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize))
         {
             ImGui::SetWindowFocus("Archipelago Mod - First Run");
 
@@ -205,7 +233,6 @@ namespace APGUI
 
     void ImGuiTab()
     {
-        ImGui::Checkbox("Hide window during gameplay", &auto_hide_client);
         APSettings::ImGuiTab();
 
         ImGui::Separator();
@@ -223,13 +250,21 @@ namespace APGUI
         APReload::ImGuiTab();
 
         if (ImGui::CollapsingHeader("Styling")) {
+            ImGui::Checkbox("Hide during gameplay", &autoHideClient);
+            ImGui::Checkbox("Enable docking support", &enableDocking);
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
             ImGui::DragFloat("Font DPI Scale", &ImGui::GetStyle().FontScaleDpi, 0.02f, 0.75f, 4.0f, "%.02f");
             ImGui::SameLine();
             HelpMarker("1.25 recommended for 1440p\n1.75 recommended for 4K");
 
-            if (ImGui::DragFloat("Global Alpha", &ImGui::GetStyle().Alpha, 0.01f, 0.50f, 1.0f, "%.2f"))
-                ImGui::GetStyle().Alpha = max(ImGui::GetStyle().Alpha, 0.5f); // unlike the demo, actually prevent a 0
+            if (ImGui::DragFloat("Default Alpha", &alphaDefault, 0.01f, 0.5f, 1.0f, "%.2f"))
+                alphaDefault = max(alphaDefault, 0.5f); // unlike the demo, actually prevent a 0
+
+            if (ImGui::DragFloat("In-game Alpha", &alphaIngame, 0.01f, 0.1f, 1.0f, "%.2f"))
+                alphaIngame = max(alphaIngame, 0.1f);
+
+            ImGui::SameLine();
+            HelpMarker("If not hidden during gameplay, lower alpha to this instead.");
         }
 
         if (ImGui::CollapsingHeader("Developer Mode")) {
