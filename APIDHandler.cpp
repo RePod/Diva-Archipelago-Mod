@@ -117,115 +117,110 @@ namespace APIDHandler
 
 	void ImGuiTab()
 	{
-		if (ImGui::BeginTabItem("Tracker")) {
-			updateTrackerLine();
-			ImGui::Text(trackerLine.c_str());
+		updateTrackerLine();
 
-			if (ImGui::BeginTable("tableTrackerOptions", 2, ImGuiTableFlags_SizingStretchSame))
-			{
+		ImGui::PushTextWrapPos(0.0f);
+		ImGui::TextUnformatted(trackerLine.c_str());
+		ImGui::PopTextWrapPos();
+
+		if (ImGui::BeginTable("tableTrackerOptions", 2, ImGuiTableFlags_SizingStretchSame))
+		{
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+
+			if (ImGui::Checkbox("Freeplay", &freeplay))
+				APReload::run();
+			ImGui::SameLine();
+			HelpMarker("The entire song list will be available except for songs that have not been received yet.");
+
+			ImGui::TableSetColumnIndex(1);
+
+			if (ImGui::Checkbox("Hide checked", &hide_checked))
+				APReload::run();
+			ImGui::SameLine();
+			HelpMarker("When not in Freeplay, the song list will only show songs that have checks.");
+
+			ImGui::EndTable();
+		}
+
+		if (ImGui::BeginTable("tableTracker", 2,
+			ImGuiTableFlags_BordersInner | ImGuiTableFlags_Hideable | ImGuiTableFlags_HighlightHoveredColumn |
+			ImGuiTableFlags_Reorderable | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+			ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit
+		))
+		{
+			ImGui::TableSetupColumn("Checks");
+			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableHeadersRow();
+
+			int _availableLocs = 0;
+			for (const auto& songID : recvIDs) {
+				auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * 10) != CheckedLocations.end();
+				auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * 10) + 1) != CheckedLocations.end();
+
+				int available = (int)!loc1checked + (int)!loc2checked;
+
+				if (hide_checked && available == 0)
+					continue;
+
+				_availableLocs += available;
+
+				ImGui::PushID(static_cast<int>(songID));
+
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 
-				if (ImGui::Checkbox("Freeplay", &freeplay))
-					APReload::run();
-				ImGui::SameLine();
-				HelpMarker("The entire song list will be available except for songs that have not been received yet.");
+				std::string label = (available > 0) ? std::to_string(available) : " ";
+				label = (songID == APClient::victoryID / 10) ? "GOAL" : label;
+
+				CenterText(label);
+				ImGui::Text("%s", label.c_str());
 
 				ImGui::TableSetColumnIndex(1);
+				std::string name = item_ap_id_to_name[songID * 10];
+				if (name.empty())
+					name = "ID " + std::to_string(songID) + " (not in datapackage)";
 
-				if (ImGui::Checkbox("Hide checked", &hide_checked))
-					APReload::run();
-				ImGui::SameLine();
-				HelpMarker("When not in Freeplay, the song list will only show songs that have checks.");
+				if (*(bool*)PvPlayData && songID == static_cast<int64_t>(*(int*)(PvPlayData + 0x10)))
+					name = "NP: " + name;
 
-				ImGui::EndTable();
-			}
+				bool isHinted = std::find(HintedIDs.begin(), HintedIDs.end(), songID) != HintedIDs.end();
 
-			if (ImGui::BeginChild("tableTrackerContainer", ImVec2(0, 300))) {
-				if (ImGui::BeginTable("tableTracker", 2,
-					ImGuiTableFlags_BordersInner | ImGuiTableFlags_Hideable | ImGuiTableFlags_HighlightHoveredColumn |
-					ImGuiTableFlags_Reorderable | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
-					ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit
-				))
+				if (isHinted)
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+
+				ImGui::Text("%s", name.c_str());
+
+				if (isHinted)
+					ImGui::PopStyleColor();
+
+				if (APClient::devMode)
 				{
-					ImGui::TableSetupColumn("Checks");
-					ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-					ImGui::TableHeadersRow();
-
-					int _availableLocs = 0;
-					for (const auto& songID : recvIDs) {
-						auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * 10) != CheckedLocations.end();
-						auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * 10) + 1) != CheckedLocations.end();
-
-						int available = (int)!loc1checked + (int)!loc2checked;
-
-						if (hide_checked && available == 0)
-							continue;
-
-						_availableLocs += available;
-
-						ImGui::PushID(static_cast<int>(songID));
-
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-
-						std::string label = (available > 0) ? std::to_string(available) : " ";
-						label = (songID == APClient::victoryID / 10) ? "GOAL" : label;
-
-						CenterText(label);
-						ImGui::Text("%s", label.c_str());
-
-						ImGui::TableSetColumnIndex(1);
-						std::string name = item_ap_id_to_name[songID * 10];
-						if (name.empty())
-							name = "ID " + std::to_string(songID) + " (not in datapackage)";
-
-						if (*(bool*)PvPlayData && songID == static_cast<int64_t>(*(int*)(PvPlayData + 0x10)))
-							name = "NP: " + name;
-
-						bool isHinted = std::find(HintedIDs.begin(), HintedIDs.end(), songID) != HintedIDs.end();
-
-						if (isHinted)
-							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
-
-						ImGui::Text("%s", name.c_str());
-
-						if (isHinted)
-							ImGui::PopStyleColor();
-
-						if (APClient::devMode)
-						{
-							if (ImGui::BeginPopupContextItem("##xx"))
-							{
-								if (ImGui::MenuItem("Cheat##xx"))
-									APClient::LocationSend(songID);
-
-								ImGui::EndPopup();
-							}
-						}
-
-						ImGui::PopID();
-					}
-
-					if (_availableLocs == 0)
+					if (ImGui::BeginPopupContextItem("##xx"))
 					{
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						CenterText("BK");
-						ImGui::Text("BK");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("Waiting for songs...");
+						if (ImGui::MenuItem("Cheat##xx"))
+							APClient::LocationSend(songID);
+
+						ImGui::EndPopup();
 					}
-
-					availableLocs = _availableLocs;
-
-					ImGui::EndTable();
 				}
 
-				ImGui::EndChild();
+				ImGui::PopID();
 			}
 
-			ImGui::EndTabItem();
+			if (_availableLocs == 0)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				CenterText("BK");
+				ImGui::Text("BK");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("Waiting for songs...");
+			}
+
+			availableLocs = _availableLocs;
+
+			ImGui::EndTable();
 		}
 	}
 }
