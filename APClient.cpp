@@ -155,13 +155,13 @@ namespace APClient
             APDeathLink::recvHP();
             break;
         case 4:
-            APTraps::touchHidden();
+            if (notify) APTraps::touchHidden();
             break;
         case 5:
-            APTraps::touchSudden();
+            if (notify) APTraps::touchSudden();
             break;
         case 9:
-            APTraps::touchIcon();
+            if (notify) APTraps::touchIcon();
             break;
         default:
             if (itemID >= 10) {
