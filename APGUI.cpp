@@ -86,7 +86,7 @@ namespace APGUI
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
             return;
         }
-        ShowCursor(true); // If the GUI is visible, the cursor should be too.
+        while (ShowCursor(true) < 0); // If the GUI is visible, the cursor should be too.
         ImGui::GetStyle().Alpha = ingame ? alphaIngame : alphaDefault;
 
         if (showImGuiDemo)
