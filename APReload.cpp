@@ -19,6 +19,7 @@ namespace APReload
 
         reloadVal = section["key"].value_or<std::string>("F7");
         reloadVal = reloadVal.empty() ? "F7" : reloadVal;
+        std::transform(reloadVal.begin(), reloadVal.end(), reloadVal.begin(), [](unsigned char c) { return std::toupper(c); });
         reloadKeyCode = GetReloadKeyCode(reloadVal);
 
         APLogger::print("reload key: %s (0x%x)\n", reloadVal.c_str(), static_cast<int>(reloadKeyCode));
@@ -48,13 +49,13 @@ namespace APReload
 
     void scan()
     {
-        if (!hGameWindow || GetForegroundWindow() != hGameWindow)
+        if (!hGameWindow)
             return;
 
         static bool pressed = false;
 
         bool wasPressed = pressed;
-        pressed = (GetAsyncKeyState(reloadKeyCode) & 0x8000) != 0;
+        pressed = (GetKeyState(reloadKeyCode) & 0x8000) != 0;
 
         if (pressed && !wasPressed)
             run();
