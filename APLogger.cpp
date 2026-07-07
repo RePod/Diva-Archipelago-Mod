@@ -31,7 +31,7 @@ namespace APLogger
     {
         char line[512];
 
-        time_t t = time(NULL);
+        time_t t = time(nullptr);
         struct tm tm;
         localtime_s(&tm, &t);
 
@@ -63,7 +63,7 @@ namespace APLogger
         /*if (!APClient::devMode)
             return;*/
 
-        if (!ImGui::CollapsingHeader("Logging")) {
+        if (ImGui::CollapsingHeader("Logging")) {
             // TODO: Check write perms?
             ImGui::Checkbox("Log to file", &log_to_file);
             if (log_to_file) {

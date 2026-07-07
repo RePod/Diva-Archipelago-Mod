@@ -19,6 +19,7 @@ namespace APReload
 
         reloadVal = section["key"].value_or<std::string>("F7");
         reloadVal = reloadVal.empty() ? "F7" : reloadVal;
+        std::transform(reloadVal.begin(), reloadVal.end(), reloadVal.begin(), [](unsigned char c) { return std::toupper(c); });
         reloadKeyCode = GetReloadKeyCode(reloadVal);
 
         APLogger::print("reload key: %s (0x%x)\n", reloadVal.c_str(), static_cast<int>(reloadKeyCode));
@@ -48,32 +49,39 @@ namespace APReload
 
     void scan()
     {
-        if (!hGameWindow || GetForegroundWindow() != hGameWindow)
+        if (!hGameWindow)
             return;
 
         static bool pressed = false;
 
         bool wasPressed = pressed;
-        pressed = (GetAsyncKeyState(reloadKeyCode) & 0x8000) != 0;
+        pressed = (GetKeyState(reloadKeyCode) & 0x8000) != 0;
 
         if (pressed && !wasPressed)
             run();
     }
 
-    void run()
+    bool canChangeState()
     {
-        int* state = (int*)0x14CC61078;
-        int* substate = (int*)0x14CC61094;
+        const int* state = (int*)0x14CC61078;
+        const int* substate = (int*)0x14CC61094;
 
         if (*state == 2 && *substate == 7 || *state == 0 /*|| *state == 3*/ || *state == 7) {
             // Init, test, and Cust. In game including FTUI, MV, practice, and results.
             // state 7: reproducible infinite load/crash when reloading on Cust screen with 4 or more charas.
             //          only covers main menu -> cust, not song list -> cust
             APLogger::print("Reloading blocked for state %i/%i\n", *state, *substate);
-            return;
+            return false;
         }
 
         APLogger::print("Reload < %i/%i\n", *state, *substate);
+        return true;
+    }
+
+    void run()
+    {
+        if (!canChangeState())
+            return;
 
         ChangeGameState(3);
 
@@ -84,7 +92,8 @@ namespace APReload
     void sleepStartup()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(reloadDelay * 100));
-        ChangeGameSubState(0, 1);
+        if (canChangeState())
+            ChangeGameSubState(0, 1);
     }
 
     void ChangeGameState(int32_t state)

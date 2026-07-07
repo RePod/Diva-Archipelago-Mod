@@ -96,7 +96,7 @@ namespace APHints
     {
         if (!hintsRequested) {
             auto name = "_read_hints_0_" + std::to_string(AP_GetPlayerID());
-            APClient::ServerDataRequest_Raw(name, hintsRequest, hintsRequested, hintsRaw_S);
+            //APClient::ServerDataRequest_Raw(name, hintsRequest, hintsRequested, hintsRaw_S);
             return;
         }
 
@@ -171,122 +171,115 @@ namespace APHints
     {
         //if (!APClient::devMode) return;
 
-        if (ImGui::BeginTabItem("Hints")) {
-            if (!init) {
-                AP_Say("!hint");
-                init = true;
-            }
+        if (!init) {
+            AP_Say("!hint");
+            init = true;
+        }
 
-            /*if (hintsRequested)
-                refreshHints();*/
+        /*if (hintsRequested)
+            refreshHints();*/
 
-            ImGui::Checkbox("Hide checked", &hintHideChecked);
-            ImGui::SameLine();
-            HelpMarker("Non-song items may be out of date until manually refreshed.");
-            ImGui::SameLine();
+        ImGui::Checkbox("Hide checked", &hintHideChecked);
+        ImGui::SameLine();
+        HelpMarker("Non-song items may be out of date until manually refreshed.");
+        ImGui::SameLine();
 
-            float avail = ImGui::GetContentRegionAvail().x;
-            float buttonWidth = ImGui::CalcTextSize("Manual Refresh").x + ImGui::GetStyle().FramePadding.x * 2;
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail - buttonWidth);
+        float avail = ImGui::GetContentRegionAvail().x;
+        float buttonWidth = ImGui::CalcTextSize("Manual Refresh").x + ImGui::GetStyle().FramePadding.x * 2;
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail - buttonWidth);
 
-            //ImGui::BeginDisabled(true);
-            if (ImGui::Button("Manual Refresh")) {
-                drop();
-                AP_Say("!hint");
-            }
-            //ImGui::EndDisabled();
+        //ImGui::BeginDisabled(true);
+        if (ImGui::Button("Manual Refresh")) {
+            drop();
+            AP_Say("!hint");
+        }
+        //ImGui::EndDisabled();
 
-            if (ImGui::IsItemHovered()) {
-                ImGui::BeginTooltip();
-                ImGui::Text("Refresh checked status for non-song items.\nThis sends a !hint command in chat.");
-                ImGui::EndTooltip();
-            }
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text("Sends a !hint command in chat for better accuracy.\n"
+                        "New hints are not created and hint points are not spent.");
+            ImGui::EndTooltip();
+        }
 
-            ImGui::Checkbox("Show only my checks", &hintOwnLocationsOnly);
+        ImGui::Checkbox("Show only my checks", &hintOwnLocationsOnly);
 
-            ImGui::SameLine();
-            std::string hintLabel = std::to_string(Hints.size()) + " Hints";
-            avail = ImGui::GetContentRegionAvail().x;
-            buttonWidth = ImGui::CalcTextSize(hintLabel.c_str()).x;
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail - buttonWidth);
-            ImGui::Text("%s", hintLabel.c_str());
+        ImGui::SameLine();
+        std::string hintLabel = std::to_string(Hints.size()) + " Hints";
+        avail = ImGui::GetContentRegionAvail().x;
+        buttonWidth = ImGui::CalcTextSize(hintLabel.c_str()).x;
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + avail - buttonWidth);
+        ImGui::Text("%s", hintLabel.c_str());
 
-            if (ImGui::BeginChild("tableHintsContainer", ImVec2(0, 300))) {
-                if (ImGui::BeginTable("tableHints", 5,
-                    ImGuiTableFlags_BordersInner | ImGuiTableFlags_Hideable | ImGuiTableFlags_HighlightHoveredColumn |
-                    ImGuiTableFlags_Reorderable | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
-                    ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit
-                ))
-                {
-                    ImGui::TableSetupColumn(" ");
-                    ImGui::TableSetupColumn("Finder");
-                    ImGui::TableSetupColumn("Receiver");
-                    ImGui::TableSetupColumn("Item");
-                    ImGui::TableSetupColumn("Location");
-                    ImGui::TableHeadersRow();
+        if (ImGui::BeginTable("tableHints", 5,
+            ImGuiTableFlags_BordersInner | ImGuiTableFlags_Hideable | ImGuiTableFlags_HighlightHoveredColumn |
+            ImGuiTableFlags_Reorderable | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
+            ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit
+        ))
+        {
+            ImGui::TableSetupColumn(" ");
+            ImGui::TableSetupColumn("Finder");
+            ImGui::TableSetupColumn("Receiver");
+            ImGui::TableSetupColumn("Item");
+            ImGui::TableSetupColumn("Location");
+            ImGui::TableHeadersRow();
 
-                    int uid = 0;
-                    for (const AP_HintMessage& hint : Hints) {
-                        if (hintHideChecked && hint.checked)
-                            continue;
+            int uid = 0;
+            for (const AP_HintMessage& hint : Hints) {
+                if (hintHideChecked && hint.checked)
+                    continue;
 
-                        bool isMyCheck = isPlayer(hint.sendPlayer);
+                bool isMyCheck = isPlayer(hint.sendPlayer);
 
-                        if (hintOwnLocationsOnly && !isMyCheck)
-                            continue;
+                if (hintOwnLocationsOnly && !isMyCheck)
+                    continue;
 
-                        ImGui::TableNextRow();
+                ImGui::TableNextRow();
 
-                        uid += 1;
-                        ImGui::PushID(uid);
+                uid += 1;
+                ImGui::PushID(uid);
 
-                        ImGui::TableSetColumnIndex(0);
-                        ImGui::Text("%s", hint.checked ? "X" : " ");
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", hint.checked ? "X" : " ");
 
-                        ImGui::TableSetColumnIndex(1);
-                        ImGui::Text("%s", hint.sendPlayer.c_str());
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%s", hint.sendPlayer.c_str());
 
-                        ImGui::TableSetColumnIndex(2);
-                        ImGui::Text("%s", hint.recvPlayer.c_str());
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%s", hint.recvPlayer.c_str());
 
-                        ImGui::TableSetColumnIndex(3);
-                        ImGui::Text("%s", hint.item.c_str());
+                ImGui::TableSetColumnIndex(3);
+                ImGui::Text("%s", hint.item.c_str());
 
-                        ImGui::TableSetColumnIndex(4);
+                ImGui::TableSetColumnIndex(4);
 
-                        // TODO: ID Remaps
-                        auto locID = location_name_to_id[hint.location.c_str()];
-                        auto itemName = item_ap_id_to_name[(locID / 10) * 10];
+                // TODO: ID Remaps
+                auto locID = location_name_to_id[hint.location.c_str()];
+                auto itemName = item_ap_id_to_name[(locID / 10) * 10];
 
-                        bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / 10) != recvIDs.end();
+                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / 10) != recvIDs.end();
 
-                        if (haveItem)
-                            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+                if (haveItem)
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 
-                        ImGui::Text("%s", hint.location.c_str());
+                ImGui::Text("%s", hint.location.c_str());
 
-                        if (haveItem)
-                            ImGui::PopStyleColor();
+                if (haveItem)
+                    ImGui::PopStyleColor();
 
-                        if (isMyCheck && !haveItem) {
-                            if (ImGui::BeginPopupContextItem("##xx")) {
-                                if (ImGui::MenuItem("Hint this song##xx"))
-                                    AP_Say("!hint " + itemName);
+                if (isMyCheck && !haveItem) {
+                    if (ImGui::BeginPopupContextItem("##xx")) {
+                        if (ImGui::MenuItem("Hint this song##xx"))
+                            AP_Say("!hint " + itemName);
 
-                                ImGui::EndPopup();
-                            }
-                        }
-
-                        ImGui::PopID();
+                        ImGui::EndPopup();
                     }
-
-                    ImGui::EndTable();
                 }
 
-                ImGui::EndChild();
+                ImGui::PopID();
             }
 
-            ImGui::EndTabItem();
+            ImGui::EndTable();
         }
     }
 }

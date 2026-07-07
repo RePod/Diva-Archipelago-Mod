@@ -6,13 +6,11 @@
 
 namespace APGUI
 {
-    extern bool g_ImGuiInitialized;
-
     extern HWND g_hWnd;
     extern WNDPROC g_OriginalWndProc;
 
-    void init(IDXGISwapChain* swapChain);
-    void onFrame();
+    void init(IDXGISwapChain* swapChain, ID3D11Device* device, ID3D11DeviceContext* deviceContext);
+    void onFrame(IDXGISwapChain* swapChain);
     void warning();
     void ImGuiTab();
 

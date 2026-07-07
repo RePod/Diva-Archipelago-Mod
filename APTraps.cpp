@@ -15,7 +15,6 @@ namespace APTraps
 
 	const uint64_t DivaGameControlConfig = 0x1401D6520;
 	const uint64_t PvControllerGlyphBase = 0x141133D30; // Copy of GCC Icon on load (0-12), original caller returns base glyph (0-2).
-	const uint64_t PvPlayData = 0x1412C2330;
 	//const uint64_t DivaGameModifier = PvPlayData + 0x2D120;
 	const uint64_t DivaGameTimer = PvPlayData + 0x2D33C;
 
@@ -37,18 +36,22 @@ namespace APTraps
 
 	void config(const toml::table& settings)
 	{
-		float config_duration = settings["duration"].value_or(trapDuration);
+		toml::table section;
+		if (settings.contains("traps") && settings["traps"].is_table())
+			section = *settings["traps"].as_table();
+
+		float config_duration = section["duration"].value_or(trapDuration);
 		trapDuration = std::clamp(config_duration, 0.0f, 300.0f);
 		APLogger::print("trap duration: %.02f (config: %.02f)\n", trapDuration, config_duration);
 
-		float config_iconinterval = settings["icon_reroll"].value_or(iconInterval);
+		float config_iconinterval = section["icon_interval"].value_or(iconInterval);
 		iconInterval = std::clamp(config_iconinterval, 0.0f, 60.0f);
-		APLogger::print("trap icon_reroll: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
+		APLogger::print("trap icon_interval: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
 
-		trapOverlap = settings["overlap"].value_or(false);
+		trapOverlap = section["overlap"].value_or(false);
 		APLogger::print("trap overlap: %d\n", trapOverlap);
 
-		randomizeGlyphs = settings["icon_glyphs"].value_or(false);
+		randomizeGlyphs = section["icon_glyphs"].value_or(false);
 		APLogger::print("trap icon_glyphs: %d\n", randomizeGlyphs);
 	}
 
@@ -238,70 +241,66 @@ namespace APTraps
 
 	void ImGuiTab()
 	{
-		if (ImGui::BeginTabItem("Traps")) {
-			char buf[32];
-			float songLength = *(float*)(PvPlayData + 0x2D338);
-			sprintf(buf, "%.03f / %.03f", getGameTime(), songLength);
-			ImGui::ProgressBar(getGameTime() / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
+		char buf[32];
+		float songLength = *(float*)(PvPlayData + 0x2D338);
+		sprintf(buf, "%.03f / %.03f", getGameTime(), songLength);
+		ImGui::ProgressBar(getGameTime() / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
 
-			ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds");
+		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds");
+		ImGui::SameLine();
+		HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
+
+		ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds");
+		ImGui::SameLine();
+		HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
+
+		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
+		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
+
+		if (devMode) {
+			ImGui::Separator();
+
+			if (ImGui::Button("Sudden"))
+				touchSudden();
 			ImGui::SameLine();
-			HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
-
-			ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds");
+			if (ImGui::Button("Hidden"))
+				touchHidden();
 			ImGui::SameLine();
-			HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
+			if (ImGui::Button("Icon"))
+				touchIcon();
 
-			ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
-			ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
-
-			if (devMode) {
-				ImGui::Separator();
-
-				if (ImGui::Button("Sudden"))
-					touchSudden();
-				ImGui::SameLine();
-				if (ImGui::Button("Hidden"))
-					touchHidden();
-				ImGui::SameLine();
-				if (ImGui::Button("Icon"))
-					touchIcon();
-
-				if (ImGui::BeginTable("tableTraps", 2))
+			if (ImGui::BeginTable("tableTraps", 2))
+			{
+				if (isSudden)
 				{
-					if (isSudden)
-					{
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("Sudden");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("%.02f", trapDuration + timestampSudden - getGameTime());
-					}
-
-					if (isHidden)
-					{
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("Hidden");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
-					}
-
-					if (savedIcon <= 12)
-					{
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("Icon");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::Text("%.02f %i / %i", trapDuration + timestampIconStart - getGameTime(), getCurrentIcon(),
-									*reinterpret_cast<uint8_t*>(PvControllerGlyphBase));
-					}
-
-					ImGui::EndTable();
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sudden");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.02f", trapDuration + timestampSudden - getGameTime());
 				}
-			}
 
-			ImGui::EndTabItem();
+				if (isHidden)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Hidden");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
+				}
+
+				if (savedIcon <= 12)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Icon");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.02f %i / %i", trapDuration + timestampIconStart - getGameTime(), getCurrentIcon(),
+								*reinterpret_cast<uint8_t*>(PvControllerGlyphBase));
+				}
+
+				ImGui::EndTable();
+			}
 		}
 	}
 }
