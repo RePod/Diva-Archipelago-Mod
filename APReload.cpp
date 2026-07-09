@@ -49,13 +49,13 @@ namespace APReload
 
     void scan()
     {
-        if (!hGameWindow)
+        if (!hGameWindow || GetForegroundWindow() != hGameWindow)
             return;
 
         static bool pressed = false;
 
         bool wasPressed = pressed;
-        pressed = (GetKeyState(reloadKeyCode) & 0x8000) != 0;
+        pressed = (GetAsyncKeyState(reloadKeyCode) & 0x8000) != 0;
 
         if (pressed && !wasPressed)
             run();
