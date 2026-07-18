@@ -73,10 +73,10 @@ HOOK(void, __fastcall, _PvResultsFinalize, 0x14024B800, char* PvPlayData, long l
 }
 
 HOOK(void, __fastcall, _PvLoop, 0x140244BA0, char* PvPlayData) {
-    original_PvLoop(PvPlayData);
-
     APDeathLink::run(false);
     APTraps::run();
+
+    original_PvLoop(PvPlayData);
 }
 
 HOOK(void, __fastcall, _PvCalculateGrade, 0x1402462E0, char* PvPlayData) {

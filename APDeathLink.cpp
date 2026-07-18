@@ -128,7 +128,7 @@ namespace APDeathLink
 
         // Get portion of HP
         int available = (255 * HPnumerator) / HPdenominator;
-        available = std::clamp((int)available, 1, 255);
+        available = std::clamp(available, 1, 255);
 
         HPfloor = 255 - available;
         HPpercent = (HPfloor * 100) / 255 - 1;
@@ -139,24 +139,24 @@ namespace APDeathLink
 
         if (!HPengaged) {
             // Roll 6% behind current HP. One day find the HP bar % address.
-            int hp_percent = (*(uint8_t*)DivaGameHP * 100) / 255;
+            int hp_percent = (*(int*)DivaGameHP * 100) / 255;
 
             if (HPprepercent < hp_percent - 6) {
                 HPprepercent += 1;
                 HPprefloor = (255 * HPprepercent) / 100;
-                WRITE_MEMORY(DivaSafetyWidthPercent, int, static_cast<uint8_t>(HPprepercent));
+                WRITE_MEMORY(DivaSafetyWidthPercent, int, HPprepercent);
             }
         }
         else {
             if (HPpercent > 0)
-                WRITE_MEMORY(DivaSafetyWidthPercent, int, static_cast<uint8_t>(HPpercent));
+                WRITE_MEMORY(DivaSafetyWidthPercent, int, HPpercent);
         }
     }
 
     void prog_hp_reset()
     {
-        if (HPdenominator == 1)
-            return;
+        /*if (HPdenominator == 1)
+            return;*/
 
         /*HPnumerator = 1;
         HPdenominator = 1;*/
@@ -171,7 +171,7 @@ namespace APDeathLink
 
     void check_fail()
     {
-        if (*(uint8_t*)DivaGameHP > 0)
+        if (*(int*)DivaGameHP > 0)
             return;
 
         if (deathLinked) {
@@ -207,7 +207,7 @@ namespace APDeathLink
             return;
         }
 
-        int currentHP = *(uint8_t*)DivaGameHP;
+        int currentHP = *(int*)DivaGameHP;
 
         if (now - lastCheckedHP > 1.0f) {
             lastCheckedHP = now;
@@ -254,9 +254,9 @@ namespace APDeathLink
         setHP(currentHP);
     }
 
-    void setHP(uint8_t HP)
+    void setHP(int HP)
     {
-        WRITE_MEMORY(DivaGameHP, int, static_cast<uint8_t>(HP));
+        WRITE_MEMORY(DivaGameHP, int, HP);
     }
 
     void ImGuiTab()

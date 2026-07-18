@@ -25,7 +25,7 @@ namespace APDeathLink
 	void recvHP();
 	void prog_hp_update();
 	void prog_hp_reset();
-	void setHP(uint8_t HP);
+	void setHP(int HP);
 
 	void ImGuiTab();
 };
