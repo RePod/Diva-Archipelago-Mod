@@ -338,15 +338,36 @@ namespace APClient
 
         if (AP_IsMessagePending()) {
             AP_Message* msg = AP_GetLatestMessage();
-            APLogger::print("%s\n", msg->text.c_str());
+            std::string hold_msg;
 
-            LogAppend(msg->text);
+            if (msg->type == AP_MessageType::ItemRecv) {
+                auto recv_msg = static_cast<AP_ItemRecvMessage*>(msg);
+                auto isPlayer = APHints::isPlayer(recv_msg->sendPlayer);
 
-            if (msg->type == AP_MessageType::Hint)
+                if (isPlayer) {
+                    hold_msg = recv_msg->sendPlayer + " found their " + recv_msg->item;
+                }
+                else {
+                    hold_msg = recv_msg->sendPlayer + " sent " + recv_msg->item + " to You";
+                }
+            }
+            else if (msg->type == AP_MessageType::ItemSend) {
+                auto send_msg = static_cast<AP_ItemSendMessage*>(msg);
+
+                hold_msg = "You sent " + send_msg->item + " to " + send_msg->recvPlayer;
+            }
+            else if (msg->type == AP_MessageType::Hint)
             {
                 AP_HintMessage* h_msg = static_cast<AP_HintMessage*>(msg);
                 APHints::handleHintMessage(*h_msg);
+                hold_msg = h_msg->text;
             }
+            else {
+                hold_msg = msg->text;
+            }
+
+            APLogger::print("%s\n", hold_msg.c_str());
+            LogAppend(hold_msg);
 
             AP_ClearLatestMessage();
         }
