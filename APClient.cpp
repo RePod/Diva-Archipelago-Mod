@@ -353,8 +353,14 @@ namespace APClient
             }
             else if (msg->type == AP_MessageType::ItemSend) {
                 auto send_msg = static_cast<AP_ItemSendMessage*>(msg);
+                auto isPlayer = APHints::isPlayer(send_msg->recvPlayer);
 
-                hold_msg = "You sent " + send_msg->item + " to " + send_msg->recvPlayer;
+                if (isPlayer) {
+                    hold_msg = send_msg->recvPlayer + " found their " + send_msg->item;
+                }
+                else {
+                    hold_msg = "You sent " + send_msg->item + " to " + send_msg->recvPlayer;
+                }
             }
             else if (msg->type == AP_MessageType::Hint)
             {
