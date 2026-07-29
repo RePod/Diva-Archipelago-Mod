@@ -10,6 +10,7 @@ namespace APTraps
 {
 	extern bool isSudden;
 	extern bool isHidden;
+	extern bool stutterQueued;
 
 	void config(const toml::table& settings);
 	void save(toml::table& settings);
@@ -27,6 +28,8 @@ namespace APTraps
 
 	uint8_t getCurrentIcon();
 	void rollIcon();
+
+	void checkStutter();
 
 	void ImGuiTab();
 }

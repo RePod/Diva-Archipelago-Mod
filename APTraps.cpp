@@ -12,6 +12,8 @@ namespace APTraps
 	bool trapOverlap = false;
 	bool randomizeGlyphs = false;
 
+	bool stutterQueued = false;
+
 
 	const uint64_t DivaGameControlConfig = 0x1401D6520;
 	const uint64_t PvControllerGlyphBase = 0x141133D30; // Copy of GCC Icon on load (0-12), original caller returns base glyph (0-2).
@@ -239,6 +241,15 @@ namespace APTraps
 		WRITE_MEMORY(getIconAddress(), uint8_t, (uint8_t)nextIcon);
 	}
 
+	void checkStutter()
+	{
+		if (!stutterQueued)
+			return;
+
+		stutterQueued = false;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100 * ((rand() % 10) + 1)));
+	}
+
 	void ImGuiTab()
 	{
 		char buf[32];
@@ -268,6 +279,9 @@ namespace APTraps
 			ImGui::SameLine();
 			if (ImGui::Button("Icon"))
 				touchIcon();
+			ImGui::SameLine();
+			if (ImGui::Button("Stutter"))
+				stutterQueued = true;
 
 			if (ImGui::BeginTable("tableTraps", 2))
 			{
