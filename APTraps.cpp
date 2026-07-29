@@ -137,6 +137,14 @@ namespace APTraps
 		}
 	}
 
+	void touchStutter()
+	{
+		float now = getGameTime();
+		APLogger::print("[%6.2f] Trap < Stutter\n", now);
+
+		stutterQueued = true;
+	}
+
 	void touchIcon()
 	{
 		float now = getGameTime();
@@ -277,11 +285,11 @@ namespace APTraps
 			if (ImGui::Button("Hidden"))
 				touchHidden();
 			ImGui::SameLine();
+			if (ImGui::Button("Stutter"))
+				touchStutter();
+			ImGui::SameLine();
 			if (ImGui::Button("Icon"))
 				touchIcon();
-			ImGui::SameLine();
-			if (ImGui::Button("Stutter"))
-				stutterQueued = true;
 
 			if (ImGui::BeginTable("tableTraps", 2))
 			{

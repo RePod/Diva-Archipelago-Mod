@@ -51,6 +51,7 @@ namespace APClient
     std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = 10, 11
 
     int64_t victoryID = 0; // Song ID * 10, Love is War [1] = 10
+    GoalMode goalMode = GoalMode::Leeks;
     int leekHave = 0;
     int leekNeed = 0;
 
@@ -160,6 +161,9 @@ namespace APClient
         case 5:
             if (notify) APTraps::touchSudden();
             break;
+        case 8:
+            if (notify) APTraps::touchStutter();
+            break;
         case 9:
             if (notify) APTraps::touchIcon();
             break;
@@ -221,6 +225,7 @@ namespace APClient
         clearGrade = 2;
         victoryID = 0;
 
+        goalMode = GoalMode::Leeks;
         leekHave = 0;
         leekNeed = 0;
 
@@ -340,29 +345,17 @@ namespace APClient
             AP_Message* msg = AP_GetLatestMessage();
             std::string hold_msg;
 
-            if (msg->type == AP_MessageType::ItemRecv) {
+            // Not enough tangible info for recv/send
+            /*if (msg->type == AP_MessageType::ItemRecv) {
                 auto recv_msg = static_cast<AP_ItemRecvMessage*>(msg);
-                auto isPlayer = APHints::isPlayer(recv_msg->sendPlayer);
-
-                if (isPlayer) {
-                    hold_msg = recv_msg->sendPlayer + " found their " + recv_msg->item;
-                }
-                else {
-                    hold_msg = recv_msg->sendPlayer + " sent " + recv_msg->item + " to You";
-                }
+                hold_msg = recv_msg->sendPlayer + " sent " + recv_msg->item;
             }
             else if (msg->type == AP_MessageType::ItemSend) {
                 auto send_msg = static_cast<AP_ItemSendMessage*>(msg);
-                auto isPlayer = APHints::isPlayer(send_msg->recvPlayer);
-
-                if (isPlayer) {
-                    hold_msg = send_msg->recvPlayer + " found their " + send_msg->item;
-                }
-                else {
-                    hold_msg = "You sent " + send_msg->item + " to " + send_msg->recvPlayer;
-                }
+                hold_msg = send_msg->recvPlayer + " received " + send_msg->item;
             }
-            else if (msg->type == AP_MessageType::Hint)
+            else*/
+            if (msg->type == AP_MessageType::Hint)
             {
                 AP_HintMessage* h_msg = static_cast<AP_HintMessage*>(msg);
                 APHints::handleHintMessage(*h_msg);

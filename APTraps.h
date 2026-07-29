@@ -21,6 +21,7 @@ namespace APTraps
 
 	void touchSudden();
 	void touchHidden();
+	void touchStutter();
 	void touchIcon();
 
 	uint64_t getGameControlConfig();

@@ -3,6 +3,10 @@
 
 namespace APClient
 {
+    extern enum struct GoalMode {
+        Leeks, Percentage
+    };
+
     extern bool devMode;
 
     // AP supports item and location IDs up to int64_t (0 and negatives reserved)
