@@ -197,8 +197,6 @@ extern "C"
 
         if (!ImGui::GetIO().WantCaptureKeyboard)
             APReload::scan();
-
-        APTraps::checkStutter();
     }
 
     void __declspec(dllexport) Init()

@@ -204,6 +204,9 @@ namespace APTraps
 				resetIcon();
 			}
 		}
+
+		// More authetnic than from OnFrame, but not truly authentic.
+		checkStutter();
 	}
 
 	uint64_t getGameControlConfig()
@@ -255,7 +258,7 @@ namespace APTraps
 			return;
 
 		stutterQueued = false;
-		std::this_thread::sleep_for(std::chrono::milliseconds(100 * ((rand() % 10) + 1)));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100 * ((rand() % 7) + 1)));
 	}
 
 	void ImGuiTab()
