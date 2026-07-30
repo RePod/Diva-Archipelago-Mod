@@ -3,7 +3,7 @@
 
 namespace APClient
 {
-    extern enum struct GoalMode {
+    enum struct GoalMode {
         Leeks, Percentage
     };
 
