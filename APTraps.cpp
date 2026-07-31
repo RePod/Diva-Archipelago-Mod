@@ -93,11 +93,11 @@ namespace APTraps
 			return;
 
 		int restoredIcon = ((savedIcon <= 12 && savedIcon >= 0) ? savedIcon : 4);
-		if (getCurrentIcon() != restoredIcon) {
+		//if (getCurrentIcon() != restoredIcon) {
 			WRITE_MEMORY(getIconAddress(), uint8_t, (uint8_t)restoredIcon);
 			WRITE_MEMORY(PvControllerGlyphBase, uint8_t, (uint8_t)restoredIcon);
 			APLogger::print("Traps: Icons restored to %d\n", restoredIcon);
-		}
+		//}
 		savedIcon = 39;
 	}
 
