@@ -9,7 +9,7 @@ namespace APReload
     std::string reloadVal;
     int reloadKeyCode;
     int reloadDelay = 10;
-    bool skipMainMenu = false;
+    bool skipMainMenu = true;
 
     void config(const toml::table& settings)
     {
@@ -27,7 +27,7 @@ namespace APReload
         reloadDelay = std::clamp(section["delay"].value_or(10), 1, 10);
         APLogger::print("reload delay: %ims\n", reloadDelay * 100);
 
-        skipMainMenu = section["skip_main_menu"].value_or(false);
+        skipMainMenu = section["skip_main_menu"].value_or(true);
         APLogger::print("reload skip_main_menu: %i\n", skipMainMenu);
 
         // DATA_TEST patch thanks to Debug mod: samyuu, nastys, vixen256, korenkonder, skyth
