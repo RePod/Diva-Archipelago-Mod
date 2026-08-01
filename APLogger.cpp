@@ -57,6 +57,11 @@ namespace APLogger
         }
     }
 
+    void fromAPCpp(const std::string line)
+    {
+        print("%s\n", line.c_str());
+    }
+
     // Previously considered for a tab, made a collapsable header instead
     void ImGuiTab()
     {

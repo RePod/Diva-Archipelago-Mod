@@ -203,6 +203,7 @@ extern "C"
     {
         // May cause an APCpp crash? Not required.
         //freopen("CONOUT$", "w", stdout);
+        AP_SetLoggingCallback(APLogger::fromAPCpp);
 
         INSTALL_HOOK(_PvResultsFinalize);
         INSTALL_HOOK(_PvLoop);

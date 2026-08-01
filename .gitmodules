@@ -2,6 +2,9 @@
 	path = Dependencies/APCpp
 	url = https://github.com/N00byKing/APCpp.git
     ignore = dirty
+	# 2026-08-01: switch back to main once this is merged
+	branch = log_callback
 [submodule "Dependencies/imgui"]
 	path = Dependencies/imgui
 	url = https://github.com/ocornut/imgui.git
+	branch = docking
