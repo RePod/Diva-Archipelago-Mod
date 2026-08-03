@@ -132,9 +132,9 @@ namespace APClient
         }
 
         ImGui::SetWindowFocus("Client");
+        UpdateMissing();
         APReload::run();
         APTraps::reset();
-        UpdateMissing();
     }
 
     void ItemClear()
