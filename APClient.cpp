@@ -239,7 +239,7 @@ namespace APClient
 
     void PushRecvID(int64_t songID)
     {
-        if (std::find(recvIDs.begin(), recvIDs.end(), songID) != recvIDs.end() ||
+        if (std::find(recvIDs.begin(), recvIDs.end(), songID) != recvIDs.end() &&
             std::find(seedIDs.begin(), seedIDs.end(), songID) != seedIDs.end())
             return;
 
