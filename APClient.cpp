@@ -177,6 +177,9 @@ namespace APClient
 
     void LocationChecked(int64_t locationID)
     {
+        if (std::find(CheckedLocations.begin(), CheckedLocations.end(), locationID) != CheckedLocations.end())
+            return;
+
         CheckedLocations.push_back(locationID);
     }
 
