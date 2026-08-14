@@ -253,6 +253,8 @@ namespace APGUI
         if (ImGui::CollapsingHeader("Styling")) {
             ImGui::Checkbox("Hide during gameplay", &autoHideClient);
             ImGui::Checkbox("Enable docking support", &enableDocking);
+            ImGui::SameLine();
+            HelpMarker("Instead of a single window with tabs, spawn each tab as its own window for more customization.");
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
             ImGui::DragFloat("Font DPI Scale", &ImGui::GetStyle().FontScaleDpi, 0.02f, 0.75f, 4.0f, "%.02f");
             ImGui::SameLine();
