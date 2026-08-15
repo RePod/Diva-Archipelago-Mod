@@ -173,6 +173,8 @@ namespace APClient
                 APHints::updateByItemName(item_ap_id_to_name[itemID]);
             }
         }
+
+        APIDHandler::updateTrackerLine();
     }
 
     void LocationChecked(int64_t locationID)
@@ -181,6 +183,7 @@ namespace APClient
             return;
 
         CheckedLocations.push_back(locationID);
+        APIDHandler::updateTrackerLine();
     }
 
     void connect()
@@ -247,7 +250,7 @@ namespace APClient
             return;
 
         recvIDs.push_back(songID);
-        std::sort(recvIDs.begin(), recvIDs.end());
+        //std::sort(recvIDs.begin(), recvIDs.end());
 
         UpdateMissing();
     }
