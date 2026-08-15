@@ -4,6 +4,7 @@
 #include "APHints.h"
 #include "APIDHandler.h"
 #include "APReload.h"
+#include "APSettings.h"
 #include "APTraps.h"
 
 namespace APClient
@@ -461,8 +462,16 @@ namespace APClient
 
             if (disconnected || refused)
                 if (!AP_IsInit()) {
-                    if (ImGui::Button("Connect"))
+                    if (ImGui::Button("Connect")) {
                         connect();
+                        if (ImGui::GetIO().KeyShift)
+                            APSettings::save();
+                    }
+                    if (ImGui::IsItemHovered()) {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("Shift+Click to save connection information.");
+                        ImGui::EndTooltip();
+                    }
                 }
                 else {
                     if (ImGui::Button("Cancel"))
