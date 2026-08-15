@@ -203,14 +203,14 @@ namespace APIDHandler
 			ImGuiTableFlags_Sortable |
 			ImGuiTableFlags_BordersInner | ImGuiTableFlags_Hideable | ImGuiTableFlags_HighlightHoveredColumn |
 			ImGuiTableFlags_Reorderable | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
-			ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit
+			ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit
 		))
 		{
+			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Checks");
 			ImGui::TableSetupColumn("Received", ImGuiTableColumnFlags_DefaultHide);
 			ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_DefaultHide);
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultSort);
-			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableHeadersRow();
 
 			sort_specs = ImGui::TableGetSortSpecs();
