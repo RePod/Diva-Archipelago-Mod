@@ -185,7 +185,7 @@ namespace APIDHandler
 			if (ImGui::Checkbox("Freeplay", &freeplay))
 				APReload::run();
 			ImGui::SameLine();
-			HelpMarker("The entire song list will be available except for songs that have not been received yet.");
+			HelpMarker("The entire song list will be available except for songs that have not been received yet.\n\nDeath Link and Traps still apply.");
 
 			ImGui::TableSetColumnIndex(1);
 
