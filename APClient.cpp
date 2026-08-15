@@ -250,7 +250,6 @@ namespace APClient
             return;
 
         recvIDs.push_back(songID);
-        //std::sort(recvIDs.begin(), recvIDs.end());
 
         UpdateMissing();
     }
@@ -435,7 +434,6 @@ namespace APClient
 
     void ImGuiTab()
     {
-        //if (ImGui::BeginTabItem("Client")) {
         if (AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
         {
             if (AP_IsInit())

@@ -208,7 +208,7 @@ namespace APIDHandler
 		{
 			ImGui::TableSetupColumn("Checks");
 			ImGui::TableSetupColumn("Received", ImGuiTableColumnFlags_DefaultHide);
-			ImGui::TableSetupColumn("Song ID", ImGuiTableColumnFlags_DefaultHide);
+			ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_DefaultHide);
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultSort);
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableHeadersRow();
