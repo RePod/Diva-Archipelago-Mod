@@ -3,14 +3,6 @@
 #include "APIDHandler.h"
 #include "APReload.h"
 
-struct TrackerItem
-{
-	int64_t songID = 0;
-	int receivedIndex = 0;
-	int checksAvailable = 0;
-	std::string name = "";
-};
-
 namespace APIDHandler
 {
 	// Internal
@@ -67,7 +59,7 @@ namespace APIDHandler
 			return true;
 
 		size_t start = line.find_first_of("_");
-		int pvID = std::stoi(line.substr(start + 1, line.find_first_of(".") - start - 1));
+		int64_t pvID = std::stoll(line.substr(start + 1, line.find_first_of(".") - start - 1));
 
 		// Always enabled to prevent softlocks or crashing.
 		if (144 == pvID || 700 == pvID)
@@ -79,12 +71,17 @@ namespace APIDHandler
 
 		if (!freeplay && contains && hide_checked)
 		{
-			for (const auto& songID : recvIDs) {
-				auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), pvID * 10) != CheckedLocations.end();
-				auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (pvID * 10) + 1) != CheckedLocations.end();
-				if (loc1checked && loc2checked)
-					return false;
+			bool loc1 = false;
+			bool loc2 = false;
+
+			for (const auto& locID : CheckedLocations) {
+				if (locID == pvID * 10) loc1 = true;
+				if (locID == (pvID * 10) + 1) loc2 = true;
+				if (loc1 && loc2) break;
 			}
+
+			if (loc1 && loc2)
+				return false;
 		}
 
 		return freeplay ? !contains : contains;

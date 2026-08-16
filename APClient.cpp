@@ -247,7 +247,7 @@ namespace APClient
     void PushRecvID(int64_t songID)
     {
         if (std::find(recvIDs.begin(), recvIDs.end(), songID) != recvIDs.end() &&
-            std::find(seedIDs.begin(), seedIDs.end(), songID) != seedIDs.end())
+            std::find(seedIDs.begin(), seedIDs.end(), songID) == seedIDs.end())
             return;
 
         recvIDs.push_back(songID);
@@ -260,10 +260,16 @@ namespace APClient
         if (victoryID != 0 && leekHave >= leekNeed)
             PushRecvID(victoryID / 10);
 
+        // TODO: Works from a copy to preserve receive order for the Tracker.
+        // Tracking the order can be moved higher to APClient::ItemRecv.
+        // set_symmetric_difference items need to be presorted. If missingIDs is wrong Freeplay breaks.
+        auto _recvIDs = recvIDs;
+        std::sort(_recvIDs.begin(), _recvIDs.end());
+
         missingIDs.clear();
         std::set_symmetric_difference(
             seedIDs.begin(), seedIDs.end(),
-            recvIDs.begin(), recvIDs.end(),
+            _recvIDs.begin(), _recvIDs.end(),
             std::back_inserter(missingIDs)
         );
     }
