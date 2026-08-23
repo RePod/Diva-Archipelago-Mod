@@ -8,7 +8,7 @@ namespace APLogger
     std::string APLogLocal;
 
     std::ofstream APLog;
-    const std::filesystem::path LogPath = std::filesystem::current_path() / "log.txt";
+    const std::filesystem::path LogPath = BasePath / "log.txt";
 
     void config(const toml::table& settings)
     {
