@@ -50,10 +50,13 @@ namespace APLogger
             printf("[Archipelago] %s", line);
 
         if (log_to_file) {
-            APLog.open(LogPath, std::ofstream::out | std::ofstream::app);
+            if (!APLog.is_open())
+                APLog.open(LogPath, std::ofstream::out | std::ofstream::app);
 
-            if (APLog)
-                APLog.write(line, strlen(line));
+            if (APLog.is_open()) {
+                APLog << line;
+                APLog.flush();
+            }
         }
     }
 
