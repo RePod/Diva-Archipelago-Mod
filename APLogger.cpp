@@ -17,6 +17,7 @@ namespace APLogger
             section = *settings["logger"].as_table();
 
         log_to_file = section["log_to_file"].value_or(false);
+        APLogger::print("log_to_file: %d\n", log_to_file);
     }
 
     void save(toml::table& settings)
