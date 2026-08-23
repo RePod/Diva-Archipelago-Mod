@@ -43,9 +43,11 @@ LRESULT CALLBACK HookedWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 HOOK(void, __fastcall, _PvResultsFinalize, 0x14024B800, char* PvPlayData, long long a2)
 {
     // This might be somewhere in PvPlayData without having to call out
-    auto PvGameData = (char*)reinterpret_cast<uint64_t(__fastcall*)(void)>(0x14027DD90)();
-    int diff[3];
-    memcpy(diff, PvGameData, 3 * sizeof(int));
+    // TODO: Client-side per-diff clear grades?
+
+    //auto PvGameData = (char*)reinterpret_cast<uint64_t(__fastcall*)(void)>(0x14027DD90)();
+    //int diff[3];
+    //memcpy(diff, PvGameData, 3 * sizeof(int));
 
     // A grade of 1 happens only at playerPercent < 40% (good luck surviving above Easy)
     // Instead of AP patching the comparison, recheck it here.
