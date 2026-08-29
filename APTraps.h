@@ -8,9 +8,18 @@ namespace fs = std::filesystem;
 
 namespace APTraps
 {
+	enum struct TrapID : int64_t {
+		None = 0,
+		Hidden = 4,
+		Sudden = 5,
+		Stutter = 8,
+		Icon = 9,
+	};
+
 	extern bool isSudden;
 	extern bool isHidden;
 	extern bool stutterQueued;
+	extern bool trap_link;
 
 	void config(const toml::table& settings);
 	void save(toml::table& settings);
@@ -23,6 +32,8 @@ namespace APTraps
 	void touchHidden();
 	void touchStutter();
 	void touchIcon();
+	void sendTrapLink(const std::string trapName);
+	void recvTrapLink(const std::string trapName);
 
 	uint64_t getGameControlConfig();
 	uint64_t getIconAddress();

@@ -29,6 +29,8 @@
 #include "APLogger.h"
 #include "Helpers.h"
 
+using namespace nlohmann;
+
 const uint64_t PvPlayData = 0x1412C2330; // Struct eventually(TM)
 
 // ...\Hatsune Miku Project DIVA Mega Mix Plus\mods\ArchipelagoMod

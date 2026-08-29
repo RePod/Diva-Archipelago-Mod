@@ -64,6 +64,11 @@ namespace APGUI
         APSettings::load();
     }
 
+    bool isInGame()
+    {
+        return *(bool*)PvPlayData && !*(bool*)(PvPlayData + 0x1) && !*(bool*)(PvPlayData + 0x2D17D);
+    }
+
     void onFrame(IDXGISwapChain* swapChain)
     {
         ImGui_ImplDX11_NewFrame();
@@ -73,9 +78,7 @@ namespace APGUI
         // Weird focus behavior on create so keep every frame.
         ImGui::DockSpaceOverViewport(0, nullptr, ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingOverCentralNode);
 
-        // auto hide client when in game, not paused, not on results
-        bool ingame = *(bool*)PvPlayData && !*(bool*)(PvPlayData + 0x1) && !*(bool*)(PvPlayData + 0x2D17D);
-        if (ingame && autoHideClient) {
+        if (isInGame() && autoHideClient) {
             ImGui::SetWindowFocus(nullptr);
             ImGui::GetIO().WantCaptureKeyboard = false;
             ImGui::GetIO().WantCaptureMouse = false;
@@ -87,7 +90,7 @@ namespace APGUI
             return;
         }
         while (ShowCursor(true) < 1); // If the GUI is visible, the cursor should be too.
-        ImGui::GetStyle().Alpha = ingame ? alphaIngame : alphaDefault;
+        ImGui::GetStyle().Alpha = isInGame() ? alphaIngame : alphaDefault;
 
         if (showImGuiDemo)
             ImGui::ShowDemoWindow();

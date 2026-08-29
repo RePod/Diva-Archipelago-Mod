@@ -10,6 +10,7 @@ namespace APDeathLink
     int death_link_amnesty = 0; // Pair with death_link_amnesty_count
     int death_link_percent = 100; // Percentage of max HP to lose on receive. "If at or below this, die."
     float death_link_safety = 10.0f; // Seconds after receiving a DL to avoid chain reaction DLs.
+    std::vector<std::string> death_link_tags = { "DeathLink" }; // Potential for DL Groups
 
     const uint64_t DivaGameHP = PvPlayData + 0x2D234;
     const uint64_t DivaGameTimer = PvPlayData + 0x2C010;
@@ -93,7 +94,19 @@ namespace APDeathLink
         if (death_link_amnesty == 0 || death_link_amnesty_count == 0) {
             APLogger::print("DeathLink > Send\n");
             death_link_amnesty_count = death_link_amnesty;
-            AP_DeathLinkSend(msg);
+
+            AP_Bounce bounce;
+            bounce.tags = &death_link_tags;
+
+            json data;
+            std::chrono::time_point<std::chrono::system_clock> timestamp = std::chrono::system_clock::now();
+            data["time"] = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(timestamp.time_since_epoch()).count();
+            data["source"] = APClient::getSlotName();
+            data["cause"] = msg.c_str();
+            bounce.data = to_string(data);
+
+            AP_SendBounce(bounce);
+
             return;
         }
 
@@ -290,7 +303,8 @@ namespace APDeathLink
             ImGui::Separator();
         }
 
-        ImGui::Checkbox("Death Link", &death_link);
+        if (ImGui::Checkbox("Death Link", &death_link))
+            APClient::UpdateTags();
         ImGui::SameLine();
         HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
 

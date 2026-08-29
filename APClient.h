@@ -45,6 +45,9 @@ namespace APClient
     void RecvDeath(std::string src, std::string cause);
 
     bool LoadDatapackage();
+
+    void UpdateTags();
+
     void ImGuiTab();
 }
 

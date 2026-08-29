@@ -1,5 +1,6 @@
 #include "APClient.h"
 #include "APTraps.h"
+#include "APGUI.h"
 
 namespace APTraps
 {
@@ -12,8 +13,40 @@ namespace APTraps
 	bool trapOverlap = false;
 	bool randomizeGlyphs = false;
 
+	bool trap_link = false; // Is Trap Link enabled?
+	bool trap_link_others = false; // Handle known traps from other games?
+	std::vector<std::string> trap_link_tags = { "TrapLink" }; // inb4 Trap Link Groups
 	bool stutterQueued = false;
 
+	std::unordered_map<std::string, TrapID> trapMap = {
+		{ "Sudden Trap", TrapID::Sudden },
+		{ "Hidden Trap", TrapID::Hidden },
+		{ "Stutter Trap", TrapID::Stutter },
+		{ "Icon Trap", TrapID::Icon },
+	};
+
+	// Known traps from other games, when trap_link_others is true
+	// https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?usp=sharing
+	std::unordered_map<std::string, TrapID> trapMapExt = {
+		{"Invisibility Trap", TrapID::Hidden},
+		{"Invisible Trap", TrapID::Hidden},
+
+		{"Chaos Control Trap", TrapID::Stutter},
+		{"Freeze Trap", TrapID::Stutter},
+		{"Frost Trap", TrapID::Stutter},
+		{"Frozen Trap", TrapID::Stutter},
+		{"Ice Trap", TrapID::Stutter},
+		{"Paralyze Trap", TrapID::Stutter},
+		{"Paralysis Trap", TrapID::Stutter},
+		{"Paratoad Trap", TrapID::Stutter},
+		{"Stun Trap", TrapID::Stutter},
+
+		{"Fuzzy Trap", TrapID::Icon},
+		{"Chaos Trap", TrapID::Icon},
+		{"Chart Modifier Trap", TrapID::Icon},
+		{"Confusion Trap", TrapID::Icon},
+		{"Confound Trap", TrapID::Icon},
+	};
 
 	const uint64_t DivaGameControlConfig = 0x1401D6520;
 	const uint64_t PvControllerGlyphBase = 0x141133D30; // Copy of GCC Icon on load (0-12), original caller returns base glyph (0-2).
@@ -53,6 +86,12 @@ namespace APTraps
 		trapOverlap = section["overlap"].value_or(false);
 		APLogger::print("trap overlap: %d\n", trapOverlap);
 
+		trap_link = section["trap_link"].value_or(false);
+		APLogger::print("trap_link: %d\n", trap_link);
+
+		trap_link_others = section["trap_link_others"].value_or(false);
+		APLogger::print("trap_link_others: %d\n", trap_link_others);
+
 		randomizeGlyphs = section["icon_glyphs"].value_or(false);
 		APLogger::print("trap icon_glyphs: %d\n", randomizeGlyphs);
 	}
@@ -64,6 +103,8 @@ namespace APTraps
 		config.insert("icon_interval", iconInterval);
 		config.insert("icon_glyphs", randomizeGlyphs);
 		config.insert("overlap", trapOverlap);
+		config.insert("trap_link", trap_link);
+		config.insert("trap_link_others", trap_link_others);
 
 		settings.insert("traps", config);
 	}
@@ -157,6 +198,59 @@ namespace APTraps
 
 		if (timestampIconStart == now)
 			return;
+	}
+
+	void sendTrapLink(const std::string trapName)
+	{
+		if (!trap_link || !APGUI::isInGame()) return;
+
+		AP_Bounce bounce;
+		bounce.tags = &trap_link_tags;
+		json data;
+		std::chrono::time_point<std::chrono::system_clock> timestamp = std::chrono::system_clock::now();
+		data["time"] = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(timestamp.time_since_epoch()).count();
+		data["source"] = APClient::getSlotName();
+		data["trap_name"] = trapName;
+
+		bounce.data = to_string(data);
+
+		AP_SendBounce(bounce);
+	}
+
+	void recvTrapLink(const std::string trapName)
+	{
+		if (!trap_link || !APGUI::isInGame()) return;
+
+		float now = getGameTime();
+		auto trap = trapMap.find(trapName); // Native traps
+
+		if (trap_link_others && trap == trapMap.end())
+			trap = trapMapExt.find(trapName); // External traps
+
+		if (trap == trapMap.end())
+			return;
+
+		auto trapID = trap->second;
+
+		APLogger::print("[%6.2f] Trap < Linked: %s\n", now, trapName.c_str());
+
+		// trap_link_others
+
+		switch (trapID)
+		{
+		case TrapID::Hidden:
+			touchHidden();
+			break;
+		case TrapID::Sudden:
+			APTraps::touchSudden();
+			break;
+		case TrapID::Stutter:
+			APTraps::touchStutter();
+			break;
+		case TrapID::Icon:
+			APTraps::touchIcon();
+			break;
+		}
 	}
 
 	void run()
@@ -279,6 +373,19 @@ namespace APTraps
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
 		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
+
+		if (ImGui::Checkbox("Trap Link", &trap_link))
+			APClient::UpdateTags();
+		ImGui::SameLine();
+		HelpMarker("Share traps with other Trap Link players.\nLinked traps will only apply during play instead of queuing up.");
+
+		if (trap_link) {
+			ImGui::Checkbox("Traps from other games", &trap_link_others);
+			ImGui::SameLine();
+			HelpMarker("Handle known traps of a similar effect from other games.\nExample: Ice Trap = Stutter Trap");
+			ImGui::SameLine();
+			ImGui::TextLinkOpenURL("(?)", "https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?gid=811965759");
+		}
 
 		if (devMode) {
 			ImGui::Separator();

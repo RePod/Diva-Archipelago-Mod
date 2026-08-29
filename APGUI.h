@@ -10,6 +10,11 @@ namespace APGUI
     extern WNDPROC g_OriginalWndProc;
 
     void init(IDXGISwapChain* swapChain, ID3D11Device* device, ID3D11DeviceContext* deviceContext);
+
+    // true: in game, not paused, not on results
+    // Should this be in APGUI?
+    bool isInGame();
+
     void onFrame(IDXGISwapChain* swapChain);
     void warning();
     void ImGuiTab();

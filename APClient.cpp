@@ -31,7 +31,7 @@ namespace APClient
     std::string DatapackageChecksum;
     bool datapackageLoaded = false;
 
-    nlohmann::json_abi_v3_12_0::json datapackageJSON;
+    json datapackageJSON;
     std::unordered_map<std::string, int64_t> item_name_to_ap_id;
     std::unordered_map<int64_t, std::string> item_ap_id_to_name;
     std::unordered_map<std::string, int64_t> location_name_to_id;
@@ -45,7 +45,7 @@ namespace APClient
 
     AP_RoomInfo RoomInfo;
 
-    nlohmann::json_abi_v3_12_0::json slotData;
+    json slotData;
     std::vector<int64_t> seedIDs = {}; // Song IDs (Love is War [1] = 1) that are part of the seed
     std::vector<int64_t> recvIDs = {}; // Song IDs (Love is War [1] = 1) received as items
     std::vector<int64_t> missingIDs = {}; // Song IDs (Love is War [1] = 1) not yet received
@@ -125,7 +125,7 @@ namespace APClient
 
     void SlotData_FinalSongs(std::string raw)
     {
-        auto final = nlohmann::json::parse(raw);
+        auto final = json::parse(raw);
         if (final.is_array())
         {
             seedIDs = final.get<std::vector<int64_t>>();
@@ -134,6 +134,7 @@ namespace APClient
 
         ImGui::SetWindowFocus("Client");
         UpdateMissing();
+        UpdateTags();
         APReload::run();
         APTraps::reset();
     }
@@ -142,6 +143,19 @@ namespace APClient
     {
         APLogger::print("Client: reset\n");
         reset();
+    }
+
+    void RecvBounce(AP_Bounce bouncePacket)
+    {
+        json data = json::parse(bouncePacket.data);
+
+        if (bouncePacket.tags->front() == "TrapLink") {
+            std::string trap = data.at("trap_name");
+            APTraps::recvTrapLink(trap);
+        }
+        else if (bouncePacket.tags->front() == "DeathLink") {
+            RecvDeath("", "");
+        }
     }
 
     void ItemRecv(int64_t itemID, bool notify)
@@ -156,17 +170,25 @@ namespace APClient
         case 3:
             APDeathLink::recvHP();
             break;
-        case 4:
-            if (notify) APTraps::touchHidden();
+        case static_cast<int64_t>(APTraps::TrapID::Hidden):
+            if (!notify) return;
+            APTraps::touchHidden();
+            APTraps::sendTrapLink("Hidden Trap");
             break;
-        case 5:
-            if (notify) APTraps::touchSudden();
+        case static_cast<int64_t>(APTraps::TrapID::Sudden):
+            if (!notify) return;
+            APTraps::touchSudden();
+            APTraps::sendTrapLink("Sudden Trap");
             break;
-        case 8:
-            if (notify) APTraps::touchStutter();
+        case static_cast<int64_t>(APTraps::TrapID::Stutter):
+            if (!notify) return;
+            APTraps::touchStutter();
+            APTraps::sendTrapLink("Stutter Trap");
             break;
-        case 9:
-            if (notify) APTraps::touchIcon();
+        case static_cast<int64_t>(APTraps::TrapID::Icon):
+            if (!notify) return;
+            APTraps::touchIcon();
+            APTraps::sendTrapLink("Icon Trap");
             break;
         default:
             if (itemID >= 10) {
@@ -195,9 +217,9 @@ namespace APClient
         {
             AP_Init(slotServer, GameName, slotName, slotPassword);
 
-            AP_SetDeathLinkSupported(true);
-            AP_SetDeathLinkRecvCallback(RecvDeath);
-            //AP_RegisterBouncedCallback(bounced); // Alt function to handle own bounces (death link own slot)
+            //AP_SetDeathLinkSupported(true);
+            //AP_SetDeathLinkRecvCallback(RecvDeath);
+            AP_RegisterBouncedCallback(RecvBounce);
 
             AP_SetItemClearCallback(ItemClear);
             AP_SetItemRecvCallback(ItemRecv);
@@ -390,6 +412,19 @@ namespace APClient
         APDeathLink::run(true);
     }
 
+    void UpdateTags()
+    {
+        std::vector<std::string> tags;
+
+        if (APDeathLink::death_link)
+            tags.push_back("DeathLink");
+
+        if (APTraps::trap_link)
+            tags.push_back("TrapLink");
+
+        AP_UpdateTags(tags);
+    }
+
     bool LoadDatapackage()
     {
         // Dynamic datapackage lives on.
@@ -424,7 +459,7 @@ namespace APClient
             return false;
 
         // TODO: try catch?
-        datapackageJSON = nlohmann::json::parse(datapackage);
+        datapackageJSON = json::parse(datapackage);
 
         item_name_to_ap_id = datapackageJSON["item_name_to_id"].get<std::unordered_map<std::string, int64_t>>();
         for (auto& el : datapackageJSON["item_name_to_id"].items())

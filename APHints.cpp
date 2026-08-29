@@ -114,10 +114,10 @@ namespace APHints
             return;
         }
 
-        nlohmann::json tempHints;
+        json tempHints;
 
         try {
-            nlohmann::json tempHints = nlohmann::json::parse(hintsRaw_S);
+            json tempHints = json::parse(hintsRaw_S);
 
             for (const auto& hint : tempHints) {
                 if (hint["status"] != 40 || hint["item"] < 10 || hint["receiving_player"] != AP_GetPlayerID())
@@ -131,7 +131,7 @@ namespace APHints
                 }
             }
         }
-        catch (const nlohmann::json::parse_error& e) {
+        catch (const json::parse_error& e) {
             APLogger::print(__FUNCTION__": JSON parse error: (%d) %s\n", e.byte, e.what());
         }
         catch (const std::exception& e) {
