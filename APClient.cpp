@@ -150,11 +150,11 @@ namespace APClient
         json data = json::parse(bouncePacket.data);
 
         if (bouncePacket.tags->front() == "TrapLink") {
-            std::string trap = data.at("trap_name");
+            std::string trap = data.value("trap_name", "");
             APTraps::recvTrapLink(trap);
         }
         else if (bouncePacket.tags->front() == "DeathLink") {
-            RecvDeath("", "");
+            RecvDeath(data.value("source", ""), data.value("cause", ""));
         }
     }
 
@@ -216,9 +216,6 @@ namespace APClient
         if (AP_GetConnectionStatus() == AP_ConnectionStatus::Disconnected)
         {
             AP_Init(slotServer, GameName, slotName, slotPassword);
-
-            //AP_SetDeathLinkSupported(true);
-            //AP_SetDeathLinkRecvCallback(RecvDeath);
             AP_RegisterBouncedCallback(RecvBounce);
 
             AP_SetItemClearCallback(ItemClear);

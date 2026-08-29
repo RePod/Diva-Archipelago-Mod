@@ -200,7 +200,7 @@ namespace APTraps
 			return;
 	}
 
-	void sendTrapLink(const std::string trapName)
+	void linkSend(const std::string trapName)
 	{
 		if (!trap_link || !APGUI::isInGame()) return;
 
@@ -217,11 +217,10 @@ namespace APTraps
 		AP_SendBounce(bounce);
 	}
 
-	void recvTrapLink(const std::string trapName)
+	void linkRecv(const std::string trapName)
 	{
 		if (!trap_link || !APGUI::isInGame()) return;
 
-		float now = getGameTime();
 		auto trap = trapMap.find(trapName); // Native traps
 
 		if (trap_link_others && trap == trapMap.end())
@@ -231,10 +230,8 @@ namespace APTraps
 			return;
 
 		auto trapID = trap->second;
-
-		APLogger::print("[%6.2f] Trap < Linked: %s\n", now, trapName.c_str());
-
-		// trap_link_others
+		float now = getGameTime();
+		APLogger::print("[%6.2f] Trap < Linked: %s (%i)\n", now, trapName.c_str(), trapID);
 
 		switch (trapID)
 		{
@@ -242,13 +239,13 @@ namespace APTraps
 			touchHidden();
 			break;
 		case TrapID::Sudden:
-			APTraps::touchSudden();
+			touchSudden();
 			break;
 		case TrapID::Stutter:
-			APTraps::touchStutter();
+			touchStutter();
 			break;
 		case TrapID::Icon:
-			APTraps::touchIcon();
+			touchIcon();
 			break;
 		}
 	}
