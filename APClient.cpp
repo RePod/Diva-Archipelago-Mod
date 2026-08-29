@@ -154,9 +154,9 @@ namespace APClient
 
     void RecvBounce(AP_Bounce bouncePacket)
     {
-        json data = json::parse(bouncePacket.data);
-
         if (bouncePacket.tags == nullptr) return;
+
+        json data = json::parse(bouncePacket.data);
 
         if (bouncePacket.tags->front() == "TrapLink") {
             std::string trap = data.value("trap_name", "");
