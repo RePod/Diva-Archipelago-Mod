@@ -112,7 +112,7 @@ namespace APClient
 
     void SlotData_LocWin(int locWinCount)
     {
-        locNeed = locWinCount * 2;
+        locNeed = locWinCount;
     }
 
     void SlotData_ProgHP(int progHP)
