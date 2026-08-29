@@ -322,6 +322,8 @@ namespace APClient
 
     void LogAppend(const std::string &text)
     {
+        if (text.empty()) return;
+
         if (APLog.length() > 0)
             APLog += "\n";
         APLog += text;
@@ -406,6 +408,7 @@ namespace APClient
 
     void RecvDeath(std::string src, std::string cause)
     {
+        LogAppend(cause);
         APDeathLink::run(true);
     }
 
