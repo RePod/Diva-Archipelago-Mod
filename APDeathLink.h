@@ -14,6 +14,7 @@ namespace APDeathLink
 	extern int HPdenominator;
 	extern bool deathLinked;
 	extern bool death_link;
+	extern bool death_link_self;
 	extern int death_link_amnesty;
 	extern int death_link_amnesty_count;
 

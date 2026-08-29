@@ -408,7 +408,9 @@ namespace APClient
 
     void RecvDeath(std::string src, std::string cause)
     {
-        LogAppend(cause);
+        LogAppend(cause.empty() ? src + " died" : cause);
+
+        if (src == slotName && !APDeathLink::death_link_self) return;
         APDeathLink::run(true);
     }
 

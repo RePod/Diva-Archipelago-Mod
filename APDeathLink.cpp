@@ -7,6 +7,7 @@ namespace APDeathLink
 
     // Config options
     bool death_link = false; // In-game state, not APCpp. Connection should always have the DeathLink tag from APCpp.
+    bool death_link_self = false; // Specifically for co-op play, if slot can kill itself.
     int death_link_amnesty = 0; // Pair with death_link_amnesty_count
     int death_link_percent = 100; // Percentage of max HP to lose on receive. "If at or below this, die."
     float death_link_safety = 10.0f; // Seconds after receiving a DL to avoid chain reaction DLs.
@@ -42,7 +43,7 @@ namespace APDeathLink
             section = *settings["death_link"].as_table();
 
         death_link = section["enabled"].value_or(false);
-        APLogger::print("death_link enabled set to %i (config: %i)\n", death_link);
+        APLogger::print("death_link enabled set to %i\n", death_link);
 
         int config_death_link_amnesty = section["amnesty"].value_or(0);
         death_link_amnesty = std::clamp(config_death_link_amnesty, 0, 20);
@@ -57,6 +58,9 @@ namespace APDeathLink
         death_link_safety = std::clamp(config_safety, 0.0f, 30.0f);
         APLogger::print("death_link safety set to %.02f (config: %.02f)\n", death_link_safety, config_safety);
 
+        death_link_self = section["kill_self"].value_or(false);
+        APLogger::print("death_link kill_self set to %i\n", death_link_self);
+
         reset();
     }
 
@@ -67,6 +71,7 @@ namespace APDeathLink
         config.insert("amnesty", death_link_amnesty);
         config.insert("percent", death_link_percent);
         config.insert("safety", death_link_safety);
+        config.insert("kill_self", death_link_self);
 
         settings.insert("death_link", config);
     }
@@ -327,6 +332,10 @@ namespace APDeathLink
             ImGui::SliderFloat("Death Link Safety", &death_link_safety, 0.0f, 30.0f, "%.1f seconds");
             ImGui::SameLine();
             HelpMarker("Seconds after receiving where dying does not send one out.");
+
+            ImGui::Checkbox("Same slot deaths", &death_link_self);
+            ImGui::SameLine();
+            HelpMarker("When playing a slot co-op, react to deaths from the same slot.");
 
             if (devMode)
             {
