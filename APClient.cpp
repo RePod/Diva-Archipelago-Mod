@@ -50,9 +50,9 @@ namespace APClient
     std::vector<int64_t> seedIDs = {}; // Song IDs (Love is War [1] = 1) that are part of the seed
     std::vector<int64_t> recvIDs = {}; // Song IDs (Love is War [1] = 1) received as items
     std::vector<int64_t> missingIDs = {}; // Song IDs (Love is War [1] = 1) not yet received
-    std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = 10, 11
+    std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = 100, 101
 
-    int64_t victoryID = 0; // Song ID * 10, Love is War [1] = 10
+    int64_t victoryID = 0; // Song ID * 100, Love is War [1] = 100
     int leekHave = 0;
     int leekNeed = 0;
     int locHave = 0;
@@ -112,6 +112,7 @@ namespace APClient
 
     void SlotData_LocWin(int locWinCount)
     {
+        APLogger::print("locWin %i\n", locWinCount);
         locNeed = locWinCount;
     }
 
@@ -199,9 +200,14 @@ namespace APClient
             APTraps::touchIcon();
             APTraps::linkSend("Icon Trap");
             break;
+        case static_cast<int64_t>(APTraps::TrapID::Slow):
+            if (!notify) return;
+            APTraps::touchSlow();
+            APTraps::linkSend("Slow Trap");
+            break;
         default:
-            if (itemID >= 10) {
-                PushRecvID(itemID / 10);
+            if (itemID >= 100) {
+                PushRecvID(itemID / 100);
                 APHints::updateByItemName(item_ap_id_to_name[itemID]);
             }
         }
@@ -288,8 +294,8 @@ namespace APClient
 
     void UpdateMissing()
     {
-        if (victoryID != 0 && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed >= 0 && locHave >= locNeed))
-            PushRecvID(victoryID / 10);
+        if (victoryID >= 100 && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && locHave >= locNeed))
+            PushRecvID(victoryID / 100);
 
         // TODO: Works from a copy to preserve receive order for the Tracker.
         // Tracking the order can be moved higher to APClient::ItemRecv.
@@ -314,7 +320,7 @@ namespace APClient
             return;
         }
 
-        if (pvID == victoryID / 10)
+        if (pvID == victoryID / 100)
         {
             APLogger::print("Client: Sending goal completion from ID %i\n", pvID);
             AP_StoryComplete();
@@ -323,7 +329,7 @@ namespace APClient
             APLogger::print("Client: Sending locations for ID %i\n", pvID);
 
             // Song locations are in pairs
-            int64_t APID = pvID * 10;
+            int64_t APID = pvID * 100;
 
             std::set<int64_t> locs{ APID, APID + 1 };
             AP_SendItem(locs);

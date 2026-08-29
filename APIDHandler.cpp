@@ -75,8 +75,8 @@ namespace APIDHandler
 			bool loc2 = false;
 
 			for (const auto& locID : CheckedLocations) {
-				if (locID == pvID * 10) loc1 = true;
-				if (locID == (pvID * 10) + 1) loc2 = true;
+				if (locID == pvID * 100) loc1 = true;
+				if (locID == (pvID * 100) + 1) loc2 = true;
 				if (loc1 && loc2) break;
 			}
 
@@ -134,8 +134,8 @@ namespace APIDHandler
 		for (const auto& songID : recvIDs) {
 			index += 1;
 
-			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * 10) == CheckedLocations.end();
-			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * 10) + 1) == CheckedLocations.end();
+			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * 100) == CheckedLocations.end();
+			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * 100) + 1) == CheckedLocations.end();
 			int available = (int)loc1checked + (int)loc2checked;
 
 			availableLocs += available;
@@ -146,7 +146,7 @@ namespace APIDHandler
 			TrackerItem it;
 
 			it.checksAvailable = available;
-			it.name = item_ap_id_to_name[songID * 10];
+			it.name = item_ap_id_to_name[songID * 100];
 			it.songID = songID;
 			it.receivedIndex = index;
 
@@ -231,7 +231,7 @@ namespace APIDHandler
 				ImGui::TableSetColumnIndex(0);
 
 				std::string label = (item.checksAvailable > 0) ? std::to_string(item.checksAvailable) : " ";
-				label = (item.songID == APClient::victoryID / 10) ? "GOAL" : label;
+				label = (item.songID == APClient::victoryID / 100) ? "GOAL" : label;
 
 				CenterText(label);
 				ImGui::Text("%s", label.c_str());
@@ -247,7 +247,7 @@ namespace APIDHandler
 				ImGui::Text("%i", item.songID);
 
 				ImGui::TableNextColumn();
-				std::string name = item_ap_id_to_name[item.songID * 10];
+				std::string name = item_ap_id_to_name[item.songID * 100];
 				if (name.empty())
 					name = "ID " + std::to_string(item.songID) + " (not in datapackage)";
 

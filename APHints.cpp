@@ -83,7 +83,7 @@ namespace APHints
         if (isPlayer(recvHint.sendPlayer))
         {
             // TODO: ID Remaps
-            auto itemID = location_name_to_id[recvHint.location] / 10;
+            auto itemID = location_name_to_id[recvHint.location] / 100;
 
             if (std::find(HintedIDs.begin(), HintedIDs.end(), itemID) == HintedIDs.end())
                 HintedIDs.push_back(itemID);
@@ -120,7 +120,7 @@ namespace APHints
             json tempHints = json::parse(hintsRaw_S);
 
             for (const auto& hint : tempHints) {
-                if (hint["status"] != 40 || hint["item"] < 10 || hint["receiving_player"] != AP_GetPlayerID())
+                if (hint["status"] != 40 || hint["item"] < 100 || hint["receiving_player"] != AP_GetPlayerID())
                     continue;
 
                 auto itemName = item_ap_id_to_name[hint["item"]];
@@ -156,7 +156,7 @@ namespace APHints
 
     void updateByItemName(const std::string &itemName)
     {
-        if (item_name_to_ap_id[itemName] < 10)
+        if (item_name_to_ap_id[itemName] < 100)
             return; // Without location data, good luck. Dupes make some sense at least.
 
         for (auto& hint : Hints) {
@@ -255,9 +255,9 @@ namespace APHints
 
                 // TODO: ID Remaps
                 auto locID = location_name_to_id[hint.location.c_str()];
-                auto itemName = item_ap_id_to_name[(locID / 10) * 10];
+                auto itemName = item_ap_id_to_name[(locID / 100) * 100];
 
-                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / 10) != recvIDs.end();
+                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / 100) != recvIDs.end();
 
                 if (haveItem)
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
