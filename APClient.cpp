@@ -525,6 +525,9 @@ namespace APClient
 
             if (disconnected || refused)
                 if (!AP_IsInit()) {
+                    const int* state = (int*)0x14CC61078;
+
+                    if (*state == 0) ImGui::BeginDisabled();
                     if (ImGui::Button("Connect")) {
                         connect();
                         if (ImGui::GetIO().KeyShift)
@@ -535,6 +538,7 @@ namespace APClient
                         ImGui::Text("Shift+Click to save connection information.");
                         ImGui::EndTooltip();
                     }
+                    if (*state == 0) ImGui::EndDisabled();
                 }
                 else {
                     if (ImGui::Button("Cancel"))

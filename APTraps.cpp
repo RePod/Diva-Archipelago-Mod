@@ -12,6 +12,7 @@ namespace APTraps
 	float iconInterval = 60.0f;
 	bool trapOverlap = false;
 	bool randomizeGlyphs = false;
+	bool alternateArrows = true;
 	int slowTarget = 33;
 
 	bool trap_link = false; // Is Trap Link enabled?
@@ -74,7 +75,8 @@ namespace APTraps
 
 	// Internal
 
-	uint8_t savedIcon = 39;
+	int savedIcon = 39;
+	int savedGlyph = 39;
 	bool isSudden = false; // Had trouble with this as a bool(timestamp > 0)
 	bool isHidden = false; // Had trouble with this as a bool(timestamp > 0)
 	bool isSlow = false;
@@ -87,7 +89,7 @@ namespace APTraps
 	float timestampSlow = 0.0f;
 
 	std::mt19937 mt;
-	std::uniform_int_distribution<int> dist(0, 4);
+	std::uniform_int_distribution<int> dist(0, 12);
 	std::uniform_int_distribution<int> glyph(0, 2);
 
 	void config(const toml::table& settings)
@@ -119,6 +121,9 @@ namespace APTraps
 
 		randomizeGlyphs = section["icon_glyphs"].value_or(false);
 		APLogger::print("trap icon_glyphs: %d\n", randomizeGlyphs);
+
+		randomizeGlyphs = section["icon_alternate_arrows"].value_or(true);
+		APLogger::print("trap icon_alternate_arrows: %d\n", alternateArrows);
 	}
 
 	void save(toml::table& settings)
@@ -127,6 +132,7 @@ namespace APTraps
 		config.insert("duration", trapDuration);
 		config.insert("icon_interval", iconInterval);
 		config.insert("icon_glyphs", randomizeGlyphs);
+		config.insert("icon_alternate_arrows", alternateArrows);
 		config.insert("overlap", trapOverlap);
 		config.insert("slow_target", slowTarget);
 		config.insert("trap_link", trap_link);
@@ -162,12 +168,12 @@ namespace APTraps
 			return;
 
 		int restoredIcon = ((savedIcon <= 12 && savedIcon >= 0) ? savedIcon : 4);
-		//if (getCurrentIcon() != restoredIcon) {
-			WRITE_MEMORY(getIconAddress(), uint8_t, (uint8_t)restoredIcon);
-			WRITE_MEMORY(PvControllerGlyphBase, uint8_t, (uint8_t)restoredIcon);
-			APLogger::print("Traps: Icons restored to %d\n", restoredIcon);
-		//}
+		WRITE_MEMORY(getIconAddress(), int, restoredIcon);
+		if (savedGlyph != 39)
+			WRITE_MEMORY(PvControllerGlyphBase, int, savedGlyph);
+		APLogger::print("Traps: Icons restored to %i (%i)\n", restoredIcon, savedGlyph);
 		savedIcon = 39;
+		savedGlyph = 39;
 	}
 
 	float getGameTime()
@@ -177,6 +183,11 @@ namespace APTraps
 
 	void touchSudden()
 	{
+		touchSudden(false);
+	}
+
+	void touchSudden(bool force)
+	{
 		float now = getGameTime();
 		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
 
@@ -184,7 +195,9 @@ namespace APTraps
 		timestampSudden = now;
 		isSudden = true;
 
-		if (!trapOverlap && isHidden) {
+		bool overlap = force || trapOverlap;
+
+		if (!overlap && isHidden) {
 			APLogger::print("[%6.2f] Trap < Hidden -> Sudden (expires: %.2f)\n", now, expires);
 			timestampHidden = 0.0f;
 			isHidden = false;
@@ -193,6 +206,11 @@ namespace APTraps
 
 	void touchHidden()
 	{
+		touchHidden(false);
+	}
+
+	void touchHidden(bool force)
+	{
 		float now = getGameTime();
 		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
 
@@ -200,7 +218,9 @@ namespace APTraps
 		timestampHidden = now;
 		isHidden = true;
 
-		if (!trapOverlap && isSudden) {
+		bool overlap = force || trapOverlap;
+
+		if (!overlap && isSudden) {
 			APLogger::print("[%6.2f] Trap < Sudden -> Hidden (expires: %.2f)\n", now, expires);
 			timestampSudden = 0.0f;
 			isSudden = false;
@@ -275,10 +295,10 @@ namespace APTraps
 			switch (trapID)
 			{
 			case TrapID::Hidden:
-				touchHidden();
+				touchHidden(traps.size() > 1);
 				break;
 			case TrapID::Sudden:
-				touchSudden();
+				touchSudden(traps.size() > 1);
 				break;
 			case TrapID::Stutter:
 				touchStutter();
@@ -377,9 +397,9 @@ namespace APTraps
 		return getGameControlConfig() + 0x28;
 	}
 
-	uint8_t getCurrentIcon()
+	int getCurrentIcon()
 	{
-		return *(uint8_t*)getIconAddress();
+		return *(int*)getIconAddress();
 	}
 
 	void rollIcon()
@@ -390,8 +410,14 @@ namespace APTraps
 		if (savedIcon > 12)
 			savedIcon = currentIcon;
 
+		if (!alternateArrows && nextIcon != 4)
+			nextIcon %= 4;
+
 		while (currentIcon == nextIcon) {
 			nextIcon = dist(mt);
+
+			if (!alternateArrows && nextIcon != 4)
+				nextIcon %= 4;
 
 			if (nextIcon == 4 && currentIcon == 4)
 				nextIcon = savedIcon;
@@ -401,12 +427,14 @@ namespace APTraps
 				nextIcon += 5;
 		}
 
-		if (randomizeGlyphs) {
-			int out = 1 + (4 * glyph(mt));
-			WRITE_MEMORY(PvControllerGlyphBase, uint8_t, (uint8_t)out);
-		}
+		WRITE_MEMORY(getIconAddress(), int, nextIcon);
 
-		WRITE_MEMORY(getIconAddress(), uint8_t, (uint8_t)nextIcon);
+		if (randomizeGlyphs) {
+			if (savedGlyph == 39)
+				savedGlyph = *(int*)PvControllerGlyphBase;
+			int out = 1 + (4 * glyph(mt));
+			WRITE_MEMORY(PvControllerGlyphBase, int, out);
+		}
 	}
 
 	void checkStutter()
@@ -433,10 +461,16 @@ namespace APTraps
 		ImGui::SameLine();
 		HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
 
-		ImGui::SliderInt("Slow target", &slowTarget, 15, 40);
+		if (ImGui::SliderInt("Slow target", &slowTarget, 20, 40))
+			slowTarget = std::clamp(slowTarget, 15, 60);
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
+		ImGui::Checkbox("Icon Trap: Alternate arrow colors", &alternateArrows);
+		ImGui::SameLine();
+		HelpMarker("When not using random glyphs, allow colored arrows for other controllers.");
 		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
+
+		ImGui::Separator();
 
 		if (ImGui::Checkbox("Trap Link", &trap_link))
 			APClient::UpdateTags();
@@ -469,49 +503,53 @@ namespace APTraps
 			if (ImGui::Button("Slow"))
 				touchSlow();
 
-			static char tl[20];
-			ImGui::InputText("##xx", tl, sizeof(tl));
-			ImGui::SameLine();
-			if (ImGui::Button("Trap Link##xx"))
-				linkRecv(std::string(tl));
+			if (trap_link) {
+				static char tl[20];
+				ImGui::InputText("##xx", tl, sizeof(tl));
+				ImGui::SameLine();
+				if (!APGUI::isInGame()) ImGui::BeginDisabled();
+				if (ImGui::Button("Trap Link##xx"))
+					linkRecv(std::string(tl));
+				if (!APGUI::isInGame()) ImGui::EndDisabled();
+			}
 
 			if (ImGui::BeginTable("tableTraps", 2))
 			{
 				if (isSudden)
 				{
 					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
+					ImGui::TableNextColumn();
 					ImGui::Text("Sudden");
-					ImGui::TableSetColumnIndex(1);
+					ImGui::TableNextColumn();
 					ImGui::Text("%.02f", trapDuration + timestampSudden - getGameTime());
 				}
 
 				if (isHidden)
 				{
 					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
+					ImGui::TableNextColumn();
 					ImGui::Text("Hidden");
-					ImGui::TableSetColumnIndex(1);
+					ImGui::TableNextColumn();
 					ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
 				}
 
 				if (isSlow)
 				{
 					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
+					ImGui::TableNextColumn();
 					ImGui::Text("Slow");
-					ImGui::TableSetColumnIndex(1);
+					ImGui::TableNextColumn();
 					ImGui::Text("%.02f", trapDuration + timestampSlow - getGameTime());
 				}
 
 				if (savedIcon <= 12)
 				{
 					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
+					ImGui::TableNextColumn();
 					ImGui::Text("Icon");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::Text("%.02f %i / %i", trapDuration + timestampIconStart - getGameTime(), getCurrentIcon(),
-								*reinterpret_cast<uint8_t*>(PvControllerGlyphBase));
+					ImGui::TableNextColumn();
+					ImGui::Text("%.02f %i / %i (%i / %i)", trapDuration + timestampIconStart - getGameTime(), getCurrentIcon(),
+								*(int*)(PvControllerGlyphBase), savedIcon, savedGlyph);
 				}
 
 				ImGui::EndTable();

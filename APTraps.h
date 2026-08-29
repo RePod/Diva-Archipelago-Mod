@@ -35,7 +35,9 @@ namespace APTraps
 	void runSlow();
 
 	void touchSudden();
+	void touchSudden(bool force);
 	void touchHidden();
+	void touchHidden(bool force);
 	void touchStutter();
 	void touchIcon();
 	void touchSlow();
@@ -45,7 +47,7 @@ namespace APTraps
 	uint64_t getGameControlConfig();
 	uint64_t getIconAddress();
 
-	uint8_t getCurrentIcon();
+	int getCurrentIcon();
 	void rollIcon();
 
 	void checkStutter();
