@@ -151,7 +151,7 @@ namespace APClient
 
         if (bouncePacket.tags->front() == "TrapLink") {
             std::string trap = data.value("trap_name", "");
-            APTraps::recvTrapLink(trap);
+            APTraps::linkRecv(trap);
         }
         else if (bouncePacket.tags->front() == "DeathLink") {
             RecvDeath(data.value("source", ""), data.value("cause", ""));
@@ -173,22 +173,22 @@ namespace APClient
         case static_cast<int64_t>(APTraps::TrapID::Hidden):
             if (!notify) return;
             APTraps::touchHidden();
-            APTraps::sendTrapLink("Hidden Trap");
+            APTraps::linkSend("Hidden Trap");
             break;
         case static_cast<int64_t>(APTraps::TrapID::Sudden):
             if (!notify) return;
             APTraps::touchSudden();
-            APTraps::sendTrapLink("Sudden Trap");
+            APTraps::linkSend("Sudden Trap");
             break;
         case static_cast<int64_t>(APTraps::TrapID::Stutter):
             if (!notify) return;
             APTraps::touchStutter();
-            APTraps::sendTrapLink("Stutter Trap");
+            APTraps::linkSend("Stutter Trap");
             break;
         case static_cast<int64_t>(APTraps::TrapID::Icon):
             if (!notify) return;
             APTraps::touchIcon();
-            APTraps::sendTrapLink("Icon Trap");
+            APTraps::linkSend("Icon Trap");
             break;
         default:
             if (itemID >= 10) {
