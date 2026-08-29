@@ -18,6 +18,7 @@ namespace APTraps
 	std::vector<std::string> trap_link_tags = { "TrapLink" }; // inb4 Trap Link Groups
 	bool stutterQueued = false;
 
+	// Traps native to this game. Should map 1:1 with TrapID.
 	std::unordered_map<std::string, TrapID> trapMap = {
 		{ "Sudden Trap", TrapID::Sudden },
 		{ "Hidden Trap", TrapID::Hidden },
@@ -221,10 +222,10 @@ namespace APTraps
 	{
 		if (!trap_link || !APGUI::isInGame()) return;
 
-		auto trap = trapMap.find(trapName); // Native traps
+		auto trap = trapMap.find(trapName);
 
 		if (trap_link_others && trap == trapMap.end())
-			trap = trapMapExt.find(trapName); // External traps
+			trap = trapMapExt.find(trapName);
 
 		if (trap == trapMap.end())
 			return;
