@@ -206,8 +206,8 @@ namespace APClient
             APTraps::linkSend("Slow Trap");
             break;
         default:
-            if (itemID >= 100) {
-                PushRecvID(itemID / 100);
+            if (itemID >= AP_ID_FACTOR) {
+                PushRecvID(itemID / AP_ID_FACTOR);
                 APHints::updateByItemName(item_ap_id_to_name[itemID]);
             }
         }
@@ -295,7 +295,7 @@ namespace APClient
     void UpdateMissing()
     {
         if (victoryID >= 100 && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && locHave >= locNeed))
-            PushRecvID(victoryID / 100);
+            PushRecvID(victoryID / AP_ID_FACTOR);
 
         // TODO: Works from a copy to preserve receive order for the Tracker.
         // Tracking the order can be moved higher to APClient::ItemRecv.
@@ -320,7 +320,7 @@ namespace APClient
             return;
         }
 
-        if (pvID == victoryID / 100)
+        if (pvID == victoryID / AP_ID_FACTOR)
         {
             APLogger::print("Client: Sending goal completion from ID %i\n", pvID);
             AP_StoryComplete();
@@ -329,7 +329,7 @@ namespace APClient
             APLogger::print("Client: Sending locations for ID %i\n", pvID);
 
             // Song locations are in pairs
-            int64_t APID = pvID * 100;
+            int64_t APID = pvID * AP_ID_FACTOR;
 
             std::set<int64_t> locs{ APID, APID + 1 };
             AP_SendItem(locs);
@@ -490,6 +490,12 @@ namespace APClient
         location_name_to_id = datapackageJSON["location_name_to_id"].get<std::unordered_map<std::string, int64_t>>();
         for (auto& el : datapackageJSON["location_name_to_id"].items())
             location_id_to_name[(int64_t)el.value()] = el.key();
+
+        int _AP_ID_FACTOR = (int)(std::pow(10, (int)(log10(item_name_to_ap_id["Love is War [1]"]))));
+        if (_AP_ID_FACTOR != AP_ID_FACTOR) {
+            APLogger::print("AP_ID_FACTOR changed from %i to %i\n", AP_ID_FACTOR, _AP_ID_FACTOR);
+            AP_ID_FACTOR = _AP_ID_FACTOR;
+        }
 
         datapackageLoaded = true;
 

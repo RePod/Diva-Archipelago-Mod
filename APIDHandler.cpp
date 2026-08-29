@@ -75,8 +75,8 @@ namespace APIDHandler
 			bool loc2 = false;
 
 			for (const auto& locID : CheckedLocations) {
-				if (locID == pvID * 100) loc1 = true;
-				if (locID == (pvID * 100) + 1) loc2 = true;
+				if (locID == pvID * AP_ID_FACTOR) loc1 = true;
+				if (locID == (pvID * AP_ID_FACTOR) + 1) loc2 = true;
 				if (loc1 && loc2) break;
 			}
 
@@ -109,7 +109,7 @@ namespace APIDHandler
 	{
 		int64_t totalLocs = (seedIDs.size() - 1) * 2;
 		int64_t foundLocs = min(static_cast<int64_t>(CheckedLocations.size()), totalLocs);
-		APClient::locHave = foundLocs;
+		APClient::locHave = static_cast<int>(foundLocs);
 
 		std::ostringstream trackerStream;
 		trackerStream << "Songs: " << recvIDs.size() << "/" << seedIDs.size() << " | ";
@@ -134,8 +134,8 @@ namespace APIDHandler
 		for (const auto& songID : recvIDs) {
 			index += 1;
 
-			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * 100) == CheckedLocations.end();
-			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * 100) + 1) == CheckedLocations.end();
+			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * AP_ID_FACTOR) == CheckedLocations.end();
+			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * AP_ID_FACTOR) + 1) == CheckedLocations.end();
 			int available = (int)loc1checked + (int)loc2checked;
 
 			availableLocs += available;
@@ -146,7 +146,7 @@ namespace APIDHandler
 			TrackerItem it;
 
 			it.checksAvailable = available;
-			it.name = item_ap_id_to_name[songID * 100];
+			it.name = item_ap_id_to_name[songID * AP_ID_FACTOR];
 			it.songID = songID;
 			it.receivedIndex = index;
 
@@ -231,7 +231,7 @@ namespace APIDHandler
 				ImGui::TableSetColumnIndex(0);
 
 				std::string label = (item.checksAvailable > 0) ? std::to_string(item.checksAvailable) : " ";
-				label = (item.songID == APClient::victoryID / 100) ? "GOAL" : label;
+				label = (item.songID == APClient::victoryID / AP_ID_FACTOR) ? "GOAL" : label;
 
 				CenterText(label);
 				ImGui::Text("%s", label.c_str());
@@ -247,7 +247,7 @@ namespace APIDHandler
 				ImGui::Text("%i", item.songID);
 
 				ImGui::TableNextColumn();
-				std::string name = item_ap_id_to_name[item.songID * 100];
+				std::string name = item_ap_id_to_name[item.songID * AP_ID_FACTOR];
 				if (name.empty())
 					name = "ID " + std::to_string(item.songID) + " (not in datapackage)";
 

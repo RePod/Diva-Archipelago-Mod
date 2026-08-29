@@ -89,7 +89,7 @@ namespace APTraps
 	float timestampSlow = 0.0f;
 
 	std::mt19937 mt;
-	std::uniform_int_distribution<int> dist(0, 12);
+	std::uniform_int_distribution<int> dist(0, 12); // 0-3 PS, 4 Arrows, 5-8 NSW, 9-12 X
 	std::uniform_int_distribution<int> glyph(0, 2);
 
 	void config(const toml::table& settings)
@@ -122,8 +122,8 @@ namespace APTraps
 		randomizeGlyphs = section["icon_glyphs"].value_or(false);
 		APLogger::print("trap icon_glyphs: %d\n", randomizeGlyphs);
 
-		randomizeGlyphs = section["icon_alternate_arrows"].value_or(true);
-		APLogger::print("trap icon_alternate_arrows: %d\n", alternateArrows);
+		alternateArrows = section["icon_arrow_colors"].value_or(true);
+		APLogger::print("trap icon_arrow_colors: %d\n", alternateArrows);
 	}
 
 	void save(toml::table& settings)
@@ -132,7 +132,7 @@ namespace APTraps
 		config.insert("duration", trapDuration);
 		config.insert("icon_interval", iconInterval);
 		config.insert("icon_glyphs", randomizeGlyphs);
-		config.insert("icon_alternate_arrows", alternateArrows);
+		config.insert("icon_arrow_colors", alternateArrows);
 		config.insert("overlap", trapOverlap);
 		config.insert("slow_target", slowTarget);
 		config.insert("trap_link", trap_link);

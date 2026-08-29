@@ -83,7 +83,7 @@ namespace APHints
         if (isPlayer(recvHint.sendPlayer))
         {
             // TODO: ID Remaps
-            auto itemID = location_name_to_id[recvHint.location] / 100;
+            auto itemID = location_name_to_id[recvHint.location] / AP_ID_FACTOR;
 
             if (std::find(HintedIDs.begin(), HintedIDs.end(), itemID) == HintedIDs.end())
                 HintedIDs.push_back(itemID);
@@ -255,9 +255,9 @@ namespace APHints
 
                 // TODO: ID Remaps
                 auto locID = location_name_to_id[hint.location.c_str()];
-                auto itemName = item_ap_id_to_name[(locID / 100) * 100];
+                auto itemName = item_ap_id_to_name[(locID / AP_ID_FACTOR) * AP_ID_FACTOR];
 
-                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / 100) != recvIDs.end();
+                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / AP_ID_FACTOR) != recvIDs.end();
 
                 if (haveItem)
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
