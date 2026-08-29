@@ -18,6 +18,7 @@ namespace APClient
     extern std::unordered_map<int64_t, std::string> location_id_to_name;
 
     // Slot and play data
+
     extern int64_t victoryID;
     extern int clearGrade;
     extern int leekHave;

@@ -329,6 +329,7 @@ namespace APClient
             AP_SendItem(locs);
 
             APHints::updateSentLocations(std::array<int64_t, 2>{ APID, APID + 1});
+            UpdateMissing();
         }
     }
 

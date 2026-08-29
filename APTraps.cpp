@@ -12,6 +12,7 @@ namespace APTraps
 	float iconInterval = 60.0f;
 	bool trapOverlap = false;
 	bool randomizeGlyphs = false;
+	int slowTarget = 33;
 
 	bool trap_link = false; // Is Trap Link enabled?
 	bool trap_link_others = false; // Handle known traps from other games?
@@ -19,34 +20,51 @@ namespace APTraps
 	bool stutterQueued = false;
 
 	// Traps native to this game. Should map 1:1 with TrapID.
-	std::unordered_map<std::string, TrapID> trapMap = {
-		{ "Sudden Trap", TrapID::Sudden },
-		{ "Hidden Trap", TrapID::Hidden },
-		{ "Stutter Trap", TrapID::Stutter },
-		{ "Icon Trap", TrapID::Icon },
+	std::unordered_map<std::string, std::vector<TrapID>> trapMap = {
+		{ "Sudden Trap", { TrapID::Sudden } },
+		{ "Hidden Trap", { TrapID::Hidden } },
+		{ "Stutter Trap", { TrapID::Stutter } },
+		{ "Icon Trap", { TrapID::Icon } },
+		{ "Slow Trap", { TrapID::Slow } },
 	};
 
 	// Known traps from other games, when trap_link_others is true
-	// https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?usp=sharing
-	std::unordered_map<std::string, TrapID> trapMapExt = {
-		{"Invisibility Trap", TrapID::Hidden},
-		{"Invisible Trap", TrapID::Hidden},
-
-		{"Chaos Control Trap", TrapID::Stutter},
-		{"Freeze Trap", TrapID::Stutter},
-		{"Frost Trap", TrapID::Stutter},
-		{"Frozen Trap", TrapID::Stutter},
-		{"Ice Trap", TrapID::Stutter},
-		{"Paralyze Trap", TrapID::Stutter},
-		{"Paralysis Trap", TrapID::Stutter},
-		{"Paratoad Trap", TrapID::Stutter},
-		{"Stun Trap", TrapID::Stutter},
-
-		{"Fuzzy Trap", TrapID::Icon},
-		{"Chaos Trap", TrapID::Icon},
-		{"Chart Modifier Trap", TrapID::Icon},
-		{"Confusion Trap", TrapID::Icon},
-		{"Confound Trap", TrapID::Icon},
+	// Hopefully kept updated: https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?usp=sharing
+	std::unordered_map<std::string, std::vector<TrapID>> trapMapExt = {
+		{ "Bullet Time Trap",		{ TrapID::Slow } },
+		{ "Chaos Control Trap",		{ TrapID::Stutter } },
+		{ "Chaos Trap",				{ TrapID::Icon } },
+		{ "Chart Modifier Trap",	{ TrapID::Icon } },
+		{ "Confuse Trap",			{ TrapID::Icon } },
+		{ "Confound Trap",			{ TrapID::Icon } },
+		{ "Confusion Trap",			{ TrapID::Icon } },
+		{ "Cutscene Trap",			{ TrapID::Slow } },
+		{ "Extreme Chaos Mode",		{ TrapID::Stutter, TrapID::Slow, TrapID::Hidden, TrapID::Sudden, TrapID::Icon } },
+		{ "Fake Transition",		{ TrapID::Hidden, TrapID::Sudden } },
+		{ "Fear Trap",				{ TrapID::Sudden } },
+		{ "Frame Slime Trap",		{ TrapID::Slow } },
+		{ "Freeze Trap",			{ TrapID::Stutter } },
+		{ "Frost Trap",				{ TrapID::Stutter } },
+		{ "Frozen Trap",			{ TrapID::Stutter } },
+		{ "Fuzzy Trap",				{ TrapID::Icon } },
+		{ "Gadget Shuffle Trap",	{ TrapID::Icon } },
+		{ "Ghost",					{ TrapID::Hidden, TrapID::Sudden } },
+		{ "Hiccup Trap",			{ TrapID::Stutter } },
+		{ "Ice Trap",				{ TrapID::Stutter } },
+		{ "Input Sequence Trap",	{ TrapID::Icon } },
+		{ "Invisibility Trap",		{ TrapID::Hidden } },
+		{ "Invisible Trap",			{ TrapID::Hidden } },
+		{ "Iron Boots Trap",		{ TrapID::Slow } },
+		{ "Paralysis Trap",			{ TrapID::Stutter } },
+		{ "Paralyze Trap",			{ TrapID::Stutter } },
+		{ "Paratoad Trap",			{ TrapID::Stutter } },
+		{ "PowerPoint Trap",		{ TrapID::Slow } },
+		{ "Shuffle Trap",			{ TrapID::Icon } },
+		{ "Sleep Trap",				{ TrapID::Stutter } },
+		{ "Slowness Trap",			{ TrapID::Slow } },
+		{ "Spooky Time",			{ TrapID::Hidden, TrapID::Sudden } },
+		{ "Stun Trap",				{ TrapID::Stutter } },
+		{ "Swap Trap",				{ TrapID::Icon } },
 	};
 
 	const uint64_t DivaGameControlConfig = 0x1401D6520;
@@ -59,12 +77,14 @@ namespace APTraps
 	uint8_t savedIcon = 39;
 	bool isSudden = false; // Had trouble with this as a bool(timestamp > 0)
 	bool isHidden = false; // Had trouble with this as a bool(timestamp > 0)
+	bool isSlow = false;
 
 	float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
 	float timestampSudden = 0.0f;
 	float timestampHidden = 0.0f;
 	float timestampIconStart = 0.0f;
 	float timestampIconLast = 0.0f;
+	float timestampSlow = 0.0f;
 
 	std::mt19937 mt;
 	std::uniform_int_distribution<int> dist(0, 4);
@@ -83,6 +103,10 @@ namespace APTraps
 		float config_iconinterval = section["icon_interval"].value_or(iconInterval);
 		iconInterval = std::clamp(config_iconinterval, 0.0f, 60.0f);
 		APLogger::print("trap icon_interval: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
+
+		int config_slow_target = section["slow_target"].value_or(32);
+		slowTarget = std::clamp(config_slow_target, 15, 40);
+		APLogger::print("slow_target: %i (config: %i)\n", slowTarget, config_slow_target);
 
 		trapOverlap = section["overlap"].value_or(false);
 		APLogger::print("trap overlap: %d\n", trapOverlap);
@@ -104,6 +128,7 @@ namespace APTraps
 		config.insert("icon_interval", iconInterval);
 		config.insert("icon_glyphs", randomizeGlyphs);
 		config.insert("overlap", trapOverlap);
+		config.insert("slow_target", slowTarget);
 		config.insert("trap_link", trap_link);
 		config.insert("trap_link_others", trap_link_others);
 
@@ -122,8 +147,10 @@ namespace APTraps
 		timestampHidden = 0.0f;
 		timestampIconStart = 0.0f;
 		timestampIconLast = 0.0f;
+		timestampSlow = 0.0f;
 		isHidden = false;
 		isSudden = false;
+		isSlow = false;
 		lastRun = 0.0f;
 
 		return 0;
@@ -201,6 +228,16 @@ namespace APTraps
 			return;
 	}
 
+	void touchSlow()
+	{
+		float now = getGameTime();
+		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
+
+		APLogger::print("[%6.2f] Trap < Slow (expires: %.2f)\n", now, expires);
+		timestampSlow = now;
+		isSlow = true;
+	}
+
 	void linkSend(const std::string trapName)
 	{
 		if (!trap_link || !APGUI::isInGame()) return;
@@ -230,24 +267,29 @@ namespace APTraps
 		if (trap == trapMap.end())
 			return;
 
-		auto trapID = trap->second;
+		auto traps = trap->second;
 		float now = getGameTime();
-		APLogger::print("[%6.2f] Trap < Linked: %s (%i)\n", now, trapName.c_str(), trapID);
+		APLogger::print("[%6.2f] Trap < Linked: %s\n", now, trapName.c_str());
 
-		switch (trapID)
-		{
-		case TrapID::Hidden:
-			touchHidden();
-			break;
-		case TrapID::Sudden:
-			touchSudden();
-			break;
-		case TrapID::Stutter:
-			touchStutter();
-			break;
-		case TrapID::Icon:
-			touchIcon();
-			break;
+		for (auto& trapID : traps) {
+			switch (trapID)
+			{
+			case TrapID::Hidden:
+				touchHidden();
+				break;
+			case TrapID::Sudden:
+				touchSudden();
+				break;
+			case TrapID::Stutter:
+				touchStutter();
+				break;
+			case TrapID::Icon:
+				touchIcon();
+				break;
+			case TrapID::Slow:
+				touchSlow();
+				break;
+			}
 		}
 	}
 
@@ -259,6 +301,8 @@ namespace APTraps
 			reset();
 			return;
 		}
+
+		APTraps::runSlow();
 
 		if (now - lastRun < 0.1f)
 			return;
@@ -300,6 +344,26 @@ namespace APTraps
 
 		// More authetnic than from OnFrame, but not truly authentic.
 		checkStutter();
+	}
+
+	void runSlow()
+	{
+		if (APGUI::isInGame() && isSlow) {
+			static std::chrono::time_point<std::chrono::system_clock> timestamp = std::chrono::system_clock::now();
+
+			float now = getGameTime();
+			std::this_thread::sleep_for(std::chrono::microseconds(1'000'000 / slowTarget));
+			auto post_sleep = std::chrono::system_clock::now();
+			timestamp = post_sleep;
+
+			auto deltaSlow = now - timestampSlow;
+
+			if (trapDuration > 0.0f && deltaSlow >= trapDuration) {
+				APLogger::print("[%6.2f] Trap > Slow expired\n", now);
+				timestampSlow = 0.0f;
+				isSlow = false;
+			}
+		}
 	}
 
 	uint64_t getGameControlConfig()
@@ -369,6 +433,8 @@ namespace APTraps
 		ImGui::SameLine();
 		HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
 
+		ImGui::SliderInt("Slow target", &slowTarget, 15, 40);
+
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
 		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
 
@@ -399,6 +465,15 @@ namespace APTraps
 			ImGui::SameLine();
 			if (ImGui::Button("Icon"))
 				touchIcon();
+			ImGui::SameLine();
+			if (ImGui::Button("Slow"))
+				touchSlow();
+
+			static char tl[20];
+			ImGui::InputText("##xx", tl, sizeof(tl));
+			ImGui::SameLine();
+			if (ImGui::Button("Trap Link##xx"))
+				linkRecv(std::string(tl));
 
 			if (ImGui::BeginTable("tableTraps", 2))
 			{
@@ -418,6 +493,15 @@ namespace APTraps
 					ImGui::Text("Hidden");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
+				}
+
+				if (isSlow)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Slow");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.02f", trapDuration + timestampSlow - getGameTime());
 				}
 
 				if (savedIcon <= 12)

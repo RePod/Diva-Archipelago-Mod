@@ -10,14 +10,19 @@ namespace APTraps
 {
 	enum struct TrapID : int64_t {
 		None = 0,
-		Hidden = 4,
-		Sudden = 5,
-		Stutter = 8,
-		Icon = 9,
+		Random = 1, // Client specific Trap ID. Use to roll valid native traps.
+		// Datapackage's Trap IDs begin at 30. Up to that can be used for whatever.
+		Hidden = 30,
+		Sudden = 31,
+		//HiSpeed = 32,
+		Slow = 33,
+		Stutter = 34,
+		Icon = 35,
 	};
 
 	extern bool isSudden;
 	extern bool isHidden;
+	extern bool isSlow;
 	extern bool stutterQueued;
 	extern bool trap_link;
 
@@ -27,6 +32,7 @@ namespace APTraps
 	int reset();
 	void resetIcon();
 	void run();
+	void runSlow();
 
 	void touchSudden();
 	void touchHidden();

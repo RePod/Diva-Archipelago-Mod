@@ -91,6 +91,7 @@ namespace APIDHandler
 	{
 		//APLogger::print("IDHandler reset\n");
 		freeplay = false;
+		updateTrackerLine();
 		unlock();
 	}
 
@@ -106,8 +107,6 @@ namespace APIDHandler
 
 	void updateTrackerLine()
 	{
-		// TODO: Update from relevant send/recv callbacks
-
 		int64_t totalLocs = (seedIDs.size() - 1) * 2;
 		int64_t foundLocs = min(static_cast<int64_t>(CheckedLocations.size()), totalLocs);
 		APClient::locHave = foundLocs;
@@ -135,9 +134,9 @@ namespace APIDHandler
 		for (const auto& songID : recvIDs) {
 			index += 1;
 
-			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * 10) != CheckedLocations.end();
-			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * 10) + 1) != CheckedLocations.end();
-			int available = (int)!loc1checked + (int)!loc2checked;
+			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * 10) == CheckedLocations.end();
+			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * 10) + 1) == CheckedLocations.end();
+			int available = (int)loc1checked + (int)loc2checked;
 
 			availableLocs += available;
 
@@ -154,8 +153,8 @@ namespace APIDHandler
 			TrackerItems.push_back(it);
 		}
 
-		if (sort_specs != nullptr //&& sort_specs->SpecsDirty
-			) {
+		// Always sort. Not too bad due to running from a CB.
+		if (sort_specs != nullptr /* && sort_specs->SpecsDirty */) {
 			std::sort(
 				TrackerItems.begin(), TrackerItems.end(),
 				[](TrackerItem a, TrackerItem b)
@@ -178,9 +177,12 @@ namespace APIDHandler
 
 	void ImGuiTab()
 	{
-		ImGui::PushTextWrapPos(0.0f);
-		ImGui::TextUnformatted(trackerLine.c_str());
-		ImGui::PopTextWrapPos();
+		if (ImGui::CalcTextSize(trackerLine.c_str()).x < ImGui::GetContentRegionAvail().x)
+			CenterText(trackerLine);
+		//ImGui::PushTextWrapPos(ImGui::GetCursorPosX());
+		ImGui::TextWrapped(trackerLine.c_str());
+		//ImGui::PopTextWrapPos();
+		ImGui::Separator();
 
 		if (ImGui::BeginTable("tableTrackerOptions", 2, ImGuiTableFlags_SizingStretchSame))
 		{
@@ -262,21 +264,27 @@ namespace APIDHandler
 				if (isHinted)
 					ImGui::PopStyleColor();
 
-				if (APClient::devMode)
+				if (ImGui::BeginPopupContextItem("##xx"))
 				{
-					if (ImGui::BeginPopupContextItem("##xx"))
-					{
+					if (APClient::devMode) {
 						if (ImGui::MenuItem("Cheat##xx"))
 							APClient::LocationSend(item.songID);
-
-						ImGui::EndPopup();
+						ImGui::Separator();
 					}
+
+					if (ImGui::MenuItem("Copy song name##xx"))
+						ImGui::SetClipboardText(item.name.c_str());
+
+					if (ImGui::MenuItem("Copy song ID##xx"))
+						ImGui::SetClipboardText(std::to_string(item.songID).c_str());
+
+					ImGui::EndPopup();
 				}
 
 				ImGui::PopID();
 			}
 
-			if (availableLocs == 0)
+			if (TrackerItems.size() == 0)
 			{
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
