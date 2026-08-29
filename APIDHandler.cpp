@@ -109,12 +109,19 @@ namespace APIDHandler
 		// TODO: Update from relevant send/recv callbacks
 
 		int64_t totalLocs = (seedIDs.size() - 1) * 2;
+		int64_t foundLocs = min(static_cast<int64_t>(CheckedLocations.size()), totalLocs);
+		APClient::locHave = foundLocs;
 
 		std::ostringstream trackerStream;
 		trackerStream << "Songs: " << recvIDs.size() << "/" << seedIDs.size() << " | ";
-		trackerStream << "Locs: " << min(static_cast<int64_t>(CheckedLocations.size()), totalLocs) << "/" << totalLocs << " | ";
-		trackerStream << "Logic: " << availableLocs << " | ";
-		trackerStream << "Leeks: " << APClient::leekHave << "/" << APClient::leekNeed;
+		trackerStream << "Locs: " << foundLocs << "/";
+		if (APClient::locNeed > 0)
+			trackerStream << APClient::locNeed << "/";
+		trackerStream << totalLocs << " | ";
+		trackerStream << "Logic: " << availableLocs;
+
+		if (APClient::leekNeed > 0)
+			trackerStream << " | Leeks: " << APClient::leekHave << "/" << APClient::leekNeed;
 
 		trackerLine = trackerStream.str();
 
@@ -147,7 +154,8 @@ namespace APIDHandler
 			TrackerItems.push_back(it);
 		}
 
-		if (sort_specs != nullptr && sort_specs->SpecsDirty) {
+		if (sort_specs != nullptr //&& sort_specs->SpecsDirty
+			) {
 			std::sort(
 				TrackerItems.begin(), TrackerItems.end(),
 				[](TrackerItem a, TrackerItem b)

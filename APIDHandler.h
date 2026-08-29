@@ -12,6 +12,8 @@ struct TrackerItem
 
 namespace APIDHandler
 {
+	extern int totalLocs;
+
 	void config(const toml::table& settings);
 	void save(toml::table& settings);
 

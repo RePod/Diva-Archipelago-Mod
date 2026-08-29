@@ -3,10 +3,6 @@
 
 namespace APClient
 {
-    enum struct GoalMode {
-        Leeks, Percentage
-    };
-
     extern bool devMode;
 
     // AP supports item and location IDs up to int64_t (0 and negatives reserved)
@@ -26,6 +22,8 @@ namespace APClient
     extern int clearGrade;
     extern int leekHave;
     extern int leekNeed;
+    extern int locHave;
+    extern int locNeed;
 
     void UpdateMissing();
 

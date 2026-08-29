@@ -21,8 +21,9 @@ namespace APClient
     char slotPassword[128] = ""; // No password cap?
 
     char say[256] = ""; // Client -> Server
-    std::string APLog = ""; // Various memory management concerns.
-    bool APLogCopyMode = false;
+    std::string ClientLog = ""; // Various memory management concerns.
+    bool ClientLogCopyMode = false;
+    bool ClientLogFilterSend = false;
 
     // Hold server data messaging
     std::vector<std::pair<AP_GetServerDataRequest, std::function<void(std::string raw)>>> DataRequests;
@@ -52,9 +53,10 @@ namespace APClient
     std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = 10, 11
 
     int64_t victoryID = 0; // Song ID * 10, Love is War [1] = 10
-    GoalMode goalMode = GoalMode::Leeks;
     int leekHave = 0;
     int leekNeed = 0;
+    int locHave = 0;
+    int locNeed = 0;
 
     int &progHPReceived = APDeathLink::HPreceived;
     int &progHPtemp = APDeathLink::HPtemp;
@@ -103,9 +105,14 @@ namespace APClient
         return slotName;
     }
 
-    void SlotData_LeekHave(int leekWinCount)
+    void SlotData_LeekWin(int leekWinCount)
     {
         leekNeed = leekWinCount;
+    }
+
+    void SlotData_LocWin(int locWinCount)
+    {
+        locNeed = static_cast<float>(locWinCount);
     }
 
     void SlotData_ProgHP(int progHP)
@@ -206,6 +213,7 @@ namespace APClient
             return;
 
         CheckedLocations.push_back(locationID);
+        UpdateMissing();
         APIDHandler::updateTrackerLine();
     }
 
@@ -224,7 +232,8 @@ namespace APClient
 
             AP_RegisterSlotDataIntCallback("victoryID", SlotData_VictoryID);
             AP_RegisterSlotDataIntCallback("scoreGradeNeeded", SlotData_VictoryID);
-            AP_RegisterSlotDataIntCallback("leekWinCount", SlotData_LeekHave);
+            AP_RegisterSlotDataIntCallback("leekWinCount", SlotData_LeekWin);
+            AP_RegisterSlotDataIntCallback("locWinCount", SlotData_LocWin);
             AP_RegisterSlotDataIntCallback("progHP", SlotData_ProgHP);
             AP_RegisterSlotDataRawCallback("finalSongIDs", SlotData_FinalSongs);
 
@@ -246,14 +255,15 @@ namespace APClient
         CheckedLocations.clear();
 
         say[0] = '\0';
-        APLog.clear();
+        ClientLog.clear();
 
         clearGrade = 2;
         victoryID = 0;
 
-        goalMode = GoalMode::Leeks;
         leekHave = 0;
         leekNeed = 0;
+        locHave = 0;
+        locNeed = 0;
 
         progHPReceived = 1;
         progHPtemp = 0;
@@ -276,7 +286,7 @@ namespace APClient
 
     void UpdateMissing()
     {
-        if (victoryID != 0 && leekHave >= leekNeed)
+        if (victoryID != 0 && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed >= 0 && locHave >= locNeed))
             PushRecvID(victoryID / 10);
 
         // TODO: Works from a copy to preserve receive order for the Tracker.
@@ -324,9 +334,9 @@ namespace APClient
     {
         if (text.empty()) return;
 
-        if (APLog.length() > 0)
-            APLog += "\n";
-        APLog += text;
+        if (ClientLog.length() > 0)
+            ClientLog += "\n";
+        ClientLog += text;
     }
 
     // Server messages
@@ -383,13 +393,12 @@ namespace APClient
             /*if (msg->type == AP_MessageType::ItemRecv) {
                 auto recv_msg = static_cast<AP_ItemRecvMessage*>(msg);
                 hold_msg = recv_msg->sendPlayer + " sent " + recv_msg->item;
-            }
-            else if (msg->type == AP_MessageType::ItemSend) {
+            }*/
+            if (msg->type == AP_MessageType::ItemSend) {
                 auto send_msg = static_cast<AP_ItemSendMessage*>(msg);
-                hold_msg = send_msg->recvPlayer + " received " + send_msg->item;
+                hold_msg = (ClientLogFilterSend && !APHints::isPlayer(send_msg->recvPlayer)) ? "" : send_msg->text;
             }
-            else*/
-            if (msg->type == AP_MessageType::Hint)
+            else if (msg->type == AP_MessageType::Hint)
             {
                 AP_HintMessage* h_msg = static_cast<AP_HintMessage*>(msg);
                 APHints::handleHintMessage(*h_msg);
@@ -399,8 +408,10 @@ namespace APClient
                 hold_msg = msg->text;
             }
 
-            APLogger::print("%s\n", hold_msg.c_str());
-            LogAppend(hold_msg);
+            if (!hold_msg.empty()) {
+                APLogger::print("%s\n", hold_msg.c_str());
+                LogAppend(hold_msg);
+            }
 
             AP_ClearLatestMessage();
         }
@@ -548,13 +559,13 @@ namespace APClient
 
             ImGui::Separator();
 
-            ImGui::BeginChild("APLog", ImVec2(0, ImGui::GetContentRegionAvail().y - (ImGui::GetFrameHeightWithSpacing() * 1.2f)));
+            ImGui::BeginChild("ClientLog", ImVec2(0, ImGui::GetContentRegionAvail().y - (ImGui::GetFrameHeightWithSpacing() * 1.2f)));
 
-            if (APLogCopyMode) {
+            if (ClientLogCopyMode) {
                 ImGui::InputTextMultiline(
                     "##APLogMulti",
-                    (char*)APLog.c_str(),
-                    APLog.size() + 1,
+                    (char*)ClientLog.c_str(),
+                    ClientLog.size() + 1,
                     ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y),
                     ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_WordWrap
                 );
@@ -564,7 +575,7 @@ namespace APClient
 
                 ImGui::PushTextWrapPos(0.0f);
 
-                std::istringstream stream(APLog);
+                std::istringstream stream(ClientLog);
                 std::string line;
 
                 while (std::getline(stream, line)) {
@@ -580,8 +591,9 @@ namespace APClient
             }
 
             if (ImGui::BeginPopupContextItem("##xx")) {
-                ImGui::MenuItem("Copy mode (no autoscroll)", nullptr, &APLogCopyMode);
-                if (ImGui::MenuItem("Clear")) APLog.clear();
+                ImGui::MenuItem("Copy mode (no autoscroll)", nullptr, &ClientLogCopyMode);
+                ImGui::MenuItem("Filter sends to me", nullptr, &ClientLogFilterSend);
+                if (ImGui::MenuItem("Clear")) ClientLog.clear();
                 ImGui::EndPopup();
             }
 
@@ -605,7 +617,11 @@ namespace APClient
             }
 
             ImGui::SameLine();
-            ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
+            if (leekNeed > 0) {
+                ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
+            } else if (locNeed > 0) {
+                ImGui::Text("%i / %i", locHave, locNeed);
+            }
 
             // TODO: Relocate
             std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID] + "\n"
