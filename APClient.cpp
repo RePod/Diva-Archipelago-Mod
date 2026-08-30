@@ -50,9 +50,9 @@ namespace APClient
     std::vector<int64_t> seedIDs = {}; // Song IDs (Love is War [1] = 1) that are part of the seed
     std::vector<int64_t> recvIDs = {}; // Song IDs (Love is War [1] = 1) received as items
     std::vector<int64_t> missingIDs = {}; // Song IDs (Love is War [1] = 1) not yet received
-    std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = 100, 101
+    std::vector<int64_t> CheckedLocations = {}; // Love is War [1] = AP_ID_FACTOR, AP_ID_FACTOR+1
 
-    int64_t victoryID = 0; // Song ID * 100, Love is War [1] = 100
+    int64_t victoryID = 0; // Song ID * AP_ID_FACTOR, Love is War [1] = AP_ID_FACTOR
     int leekHave = 0;
     int leekNeed = 0;
     int locHave = 0;
@@ -294,7 +294,7 @@ namespace APClient
 
     void UpdateMissing()
     {
-        if (victoryID >= 100 && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && locHave >= locNeed))
+        if (victoryID >= AP_ID_FACTOR && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && locHave >= locNeed))
             PushRecvID(victoryID / AP_ID_FACTOR);
 
         // TODO: Works from a copy to preserve receive order for the Tracker.
@@ -436,6 +436,9 @@ namespace APClient
 
     void UpdateTags()
     {
+        if (AP_GetConnectionStatus() == AP_ConnectionStatus::Disconnected)
+            return;
+
         std::vector<std::string> tags;
 
         if (APDeathLink::death_link)
