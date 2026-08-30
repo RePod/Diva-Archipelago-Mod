@@ -108,7 +108,7 @@ namespace APDeathLink
             data["time"] = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(timestamp.time_since_epoch()).count();
             data["source"] = APClient::getSlotName();
             data["cause"] = msg.c_str();
-            bounce.data = to_string(data);
+            bounce.data = data.dump();
 
             AP_SendBounce(bounce);
 

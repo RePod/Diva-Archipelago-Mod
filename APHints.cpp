@@ -267,16 +267,26 @@ namespace APHints
                 if (haveItem)
                     ImGui::PopStyleColor();
 
-                if (isMyCheck && !haveItem) {
-                    if (ImGui::BeginPopupContextItem("##xx")) {
-                        if (ImGui::MenuItem("Hint this song##xx"))
-                            AP_Say("!hint " + itemName);
-
-                        ImGui::EndPopup();
-                    }
-                }
-
                 ImGui::PopID();
+
+                if (ImGui::BeginPopupContextItem("##xx")) {
+                    if (isMyCheck) {
+                        if (haveItem) {
+                            ImGui::MenuItem("You have this already!", NULL, false, false);
+                        }
+                        else {
+                            if (ImGui::MenuItem("Hint this##xx"))
+                                AP_Say("!hint " + itemName);
+                        }
+                    } else {
+                        if (ImGui::MenuItem("Copy hint##xx")) {
+                            std::string h = std::string(APClient::getSlotName()) + "'s " + hint.item + " is at " + hint.location + " in " + hint.sendPlayer + "'s world";
+                            ImGui::SetClipboardText(h.c_str());
+                        }
+                    }
+
+                    ImGui::EndPopup();
+                }
             }
 
             ImGui::EndTable();

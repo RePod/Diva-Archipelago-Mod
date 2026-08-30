@@ -69,11 +69,7 @@ namespace APLogger
     // Previously considered for a tab, made a collapsable header instead
     void ImGuiTab()
     {
-        /*if (!APClient::devMode)
-            return;*/
-
         if (ImGui::CollapsingHeader("Logging")) {
-            // TODO: Check write perms?
             ImGui::Checkbox("Log to file", &log_to_file);
             if (log_to_file) {
                 ImGui::SameLine();
