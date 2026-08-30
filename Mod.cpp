@@ -42,6 +42,11 @@ LRESULT CALLBACK HookedWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 HOOK(void, __fastcall, _PvResultsFinalize, 0x14024B800, char* PvPlayData, long long a2)
 {
+    if (!APClient::devMode || AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated) {
+        original_PvResultsFinalize(PvPlayData, a2);
+        return;
+    }
+
     // This might be somewhere in PvPlayData without having to call out
     // TODO: Client-side per-diff clear grades?
 
@@ -75,8 +80,10 @@ HOOK(void, __fastcall, _PvResultsFinalize, 0x14024B800, char* PvPlayData, long l
 }
 
 HOOK(void, __fastcall, _PvLoop, 0x140244BA0, char* PvPlayData) {
-    APDeathLink::run(false);
-    APTraps::run();
+    if (APClient::devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+        APDeathLink::run(false);
+        APTraps::run();
+    }
 
     original_PvLoop(PvPlayData);
 }
@@ -84,19 +91,20 @@ HOOK(void, __fastcall, _PvLoop, 0x140244BA0, char* PvPlayData) {
 HOOK(void, __fastcall, _PvCalculateGrade, 0x1402462E0, char* PvPlayData) {
     // Too early for AP's UX but a better hook than before.
     // Primarily to catch the FAILURE on 0 HP (for AP's UX).
-
-    APDeathLink::check_fail();
-    APTraps::reset();
+    if (APClient::devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+        APDeathLink::check_fail();
+        APTraps::reset();
+    }
 
     original_PvCalculateGrade(PvPlayData);
 }
 
 HOOK(bool, __fastcall, _ModifierSudden, 0x14024b720, long long a1) {
-    return APTraps::isSudden ? true : original_ModifierSudden(a1);
+    return APTraps::isSudden || original_ModifierSudden(a1);
 }
 
 HOOK(bool, __fastcall, _ModifierHidden, 0x14024b730, long long a1) {
-    return APTraps::isHidden ? true : original_ModifierHidden(a1);
+    return APTraps::isHidden || original_ModifierHidden(a1);
 }
 
 HOOK(float, __fastcall, _SafetyDuration, 0x14024a5f0, long long a1) {
@@ -172,13 +180,15 @@ HOOK(void, __fastcall, _PvGameApplyDiff, 0x14027BB00, long long* data, int diff)
     // Allow ID 700 (Ievan Polkka Tutorial) to be things other than Easy.
     // TODO: Not this. Find out where the force to Easy happens: 0x15E4BD270()
 
-    const auto &pvID = *reinterpret_cast<int*>((char*)*data + 0x4);
+    if (APClient::devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+        const auto& pvID = *reinterpret_cast<int*>((char*)*data + 0x4);
 
-    if (pvID == 700) {
-        // Use last played base difficulty (ExEx might require shipping it in mod_pv_db, so skip for now)
-        auto PvGameData = (char*)reinterpret_cast<uint64_t(__fastcall*)(void)>(0x14027DD90)();
-        diff = *reinterpret_cast<int*>((char*)PvGameData + 0x4);
-        APLogger::print("Overriding ID 700 diff to %i\n", diff);
+        if (pvID == 700) {
+            // Use last played base difficulty (ExEx might require shipping it in mod_pv_db, so skip for now)
+            auto PvGameData = (char*)reinterpret_cast<uint64_t(__fastcall*)(void)>(0x14027DD90)();
+            diff = *reinterpret_cast<int*>((char*)PvGameData + 0x4);
+            APLogger::print("Overriding ID 700 diff to %i\n", diff);
+        }
     }
 
     original_PvGameApplyDiff(data, diff);
