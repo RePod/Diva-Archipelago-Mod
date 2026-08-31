@@ -15,6 +15,9 @@ namespace APHints
     bool hintHideChecked = true;
     bool hintOwnLocationsOnly = false;
 
+    // SpecsDirty to true to sort on next frame visible
+    ImGuiTableSortSpecs* hintSortSpec;
+
     // For updating known hints without further !hint chats (and saving on PrintJSONs)
     std::string hintsRaw_S; // Request response, JSON in a string
     AP_GetServerDataRequest hintsRequest;
@@ -66,6 +69,33 @@ namespace APHints
         return false;
     }
 
+    void sortHints()
+    {
+        if (hintSortSpec != nullptr && hintSortSpec->SpecsDirty) {
+            std::sort(
+                Hints.begin(), Hints.end(),
+                [](AP_HintMessage a, AP_HintMessage b)
+                {
+                    if (hintSortSpec->Specs->ColumnIndex == 0)
+                        return a.checked > b.checked;
+                    else if (hintSortSpec->Specs->ColumnIndex == 1)
+                        return a.sendPlayer > b.sendPlayer;
+                    else if (hintSortSpec->Specs->ColumnIndex == 2)
+                        return a.recvPlayer > b.recvPlayer;
+                    else if (hintSortSpec->Specs->ColumnIndex == 3)
+                        return a.item > b.item;
+                    else if (hintSortSpec->Specs->ColumnIndex == 4)
+                        return a.location > b.location;
+
+                    return a.item > b.item;
+                }
+            );
+            if (hintSortSpec->Specs->SortDirection == ImGuiSortDirection_Descending)
+                std::reverse(Hints.begin(), Hints.end());
+            hintSortSpec->SpecsDirty = false;
+        }
+    }
+
     void handleHintMessage(const AP_HintMessage& recvHint)
     {
         if (!isPlayer(recvHint.sendPlayer) && !isPlayer(recvHint.recvPlayer))
@@ -76,6 +106,7 @@ namespace APHints
             if (hint == recvHint)
             {
                 hint.checked = recvHint.checked;
+                if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
                 return;
             }
         }
@@ -90,6 +121,7 @@ namespace APHints
         }
 
         Hints.push_back(recvHint);
+        if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
     }
 
     void refreshHints()
@@ -152,11 +184,13 @@ namespace APHints
                     hint.checked = true;
             }
         }
+
+        if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
     }
 
     void updateByItemName(const std::string &itemName)
     {
-        if (item_name_to_ap_id[itemName] < 100)
+        if (item_name_to_ap_id[itemName] < AP_ID_FACTOR)
             return; // Without location data, good luck. Dupes make some sense at least.
 
         for (auto& hint : Hints) {
@@ -165,6 +199,8 @@ namespace APHints
                 hint.checked = true;
             }
         }
+
+        if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
     }
 
     void ImGuiTab()
@@ -212,17 +248,23 @@ namespace APHints
         ImGui::Text("%s", hintLabel.c_str());
 
         if (ImGui::BeginTable("tableHints", 5,
+            ImGuiTableFlags_Sortable |
             ImGuiTableFlags_BordersInner | ImGuiTableFlags_Hideable | ImGuiTableFlags_HighlightHoveredColumn |
             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Resizable | ImGuiTableFlags_RowBg |
-            ImGuiTableFlags_ScrollX | ImGuiTableFlags_SizingFixedFit
+            ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit
         ))
         {
-            ImGui::TableSetupColumn(" ");
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableSetupColumn("Checked");
             ImGui::TableSetupColumn("Finder");
             ImGui::TableSetupColumn("Receiver");
-            ImGui::TableSetupColumn("Item");
+            ImGui::TableSetupColumn("Item", ImGuiTableColumnFlags_DefaultSort);
             ImGui::TableSetupColumn("Location");
             ImGui::TableHeadersRow();
+
+            hintSortSpec = ImGui::TableGetSortSpecs();
+            if (hintSortSpec != nullptr && hintSortSpec->SpecsDirty)
+                sortHints();
 
             int uid = 0;
             for (const AP_HintMessage& hint : Hints) {
@@ -234,6 +276,12 @@ namespace APHints
                 if (hintOwnLocationsOnly && !isMyCheck)
                     continue;
 
+                // TODO: ID Remaps
+                auto locID = location_name_to_id[hint.location.c_str()];
+                auto itemName = item_ap_id_to_name[(locID / AP_ID_FACTOR) * AP_ID_FACTOR];
+
+                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / AP_ID_FACTOR) != recvIDs.end();
+
                 ImGui::TableNextRow();
 
                 uid += 1;
@@ -242,22 +290,16 @@ namespace APHints
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%s", hint.checked ? "X" : " ");
 
-                ImGui::TableSetColumnIndex(1);
+                ImGui::TableNextColumn();
                 ImGui::Text("%s", hint.sendPlayer.c_str());
 
-                ImGui::TableSetColumnIndex(2);
+                ImGui::TableNextColumn();
                 ImGui::Text("%s", hint.recvPlayer.c_str());
 
-                ImGui::TableSetColumnIndex(3);
+                ImGui::TableNextColumn();
                 ImGui::Text("%s", hint.item.c_str());
 
-                ImGui::TableSetColumnIndex(4);
-
-                // TODO: ID Remaps
-                auto locID = location_name_to_id[hint.location.c_str()];
-                auto itemName = item_ap_id_to_name[(locID / AP_ID_FACTOR) * AP_ID_FACTOR];
-
-                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / AP_ID_FACTOR) != recvIDs.end();
+                ImGui::TableNextColumn();
 
                 if (haveItem)
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
@@ -267,7 +309,9 @@ namespace APHints
                 if (haveItem)
                     ImGui::PopStyleColor();
 
-                ImGui::PopID();
+                ImGui::TableSetColumnIndex(0);
+
+                ImGui::Selectable("##xx", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap);
 
                 if (ImGui::BeginPopupContextItem("##xx")) {
                     if (isMyCheck) {
@@ -278,15 +322,21 @@ namespace APHints
                             if (ImGui::MenuItem("Hint this##xx"))
                                 AP_Say("!hint " + itemName);
                         }
-                    } else {
+                    }
+                    else {
                         if (ImGui::MenuItem("Copy hint##xx")) {
                             std::string h = std::string(APClient::getSlotName()) + "'s " + hint.item + " is at " + hint.location + " in " + hint.sendPlayer + "'s world";
                             ImGui::SetClipboardText(h.c_str());
                         }
                     }
 
+                    if (ImGui::MenuItem("Copy location name##xx"))
+                        ImGui::SetClipboardText(hint.location.c_str());
+
                     ImGui::EndPopup();
                 }
+
+                ImGui::PopID();
             }
 
             ImGui::EndTable();
