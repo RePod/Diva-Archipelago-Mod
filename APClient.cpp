@@ -629,6 +629,13 @@ namespace APClient
                 ImGui::SetKeyboardFocusHere();
             }
 
+            std::stringstream winCon;
+            if (leekNeed > 0)
+                winCon << leekHave << " / " << leekNeed << " Leeks";
+            else if (locNeed > 0)
+                winCon << locHave << " / " << locNeed << " Checks";
+
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize((winCon.str() + " (?) ").c_str()).x);
             if (ImGui::InputText("##APsay", say, sizeof(say), ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 refocus = true;
@@ -637,13 +644,10 @@ namespace APClient
                     say[0] = '\0';
                 }
             }
+            ImGui::PopItemWidth();
 
             ImGui::SameLine();
-            if (leekNeed > 0) {
-                ImGui::Text("%d / %d Leeks", leekHave, leekNeed);
-            } else if (locNeed > 0) {
-                ImGui::Text("%i / %i", locHave, locNeed);
-            }
+            ImGui::Text(winCon.str().c_str());
 
             // TODO: Relocate
             std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID] + "\n"
