@@ -259,15 +259,12 @@ namespace APGUI
             ImGui::SameLine();
             HelpMarker("Instead of a single window with tabs, spawn each tab as its own window for more customization.");
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
-            ImGui::DragFloat("Font DPI Scale", &ImGui::GetStyle().FontScaleDpi, 0.02f, 0.75f, 4.0f, "%.02f");
+            ImGui::DragFloat("Font DPI Scale", &ImGui::GetStyle().FontScaleDpi, 0.02f, 0.75f, 4.0f, "%.02f", ImGuiSliderFlags_AlwaysClamp);
             ImGui::SameLine();
             HelpMarker("1.25 recommended for 1440p\n1.75 recommended for 4K");
 
-            if (ImGui::DragFloat("Default Alpha", &alphaDefault, 0.01f, 0.5f, 1.0f, "%.2f"))
-                alphaDefault = max(alphaDefault, 0.5f); // unlike the demo, actually prevent a 0
-
-            if (ImGui::DragFloat("In-game Alpha", &alphaIngame, 0.01f, 0.1f, 1.0f, "%.2f"))
-                alphaIngame = max(alphaIngame, 0.1f);
+            ImGui::DragFloat("Default Alpha", &alphaDefault, 0.01f, 0.5f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            ImGui::DragFloat("In-game Alpha", &alphaIngame, 0.01f, 0.1f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
 
             ImGui::SameLine();
             HelpMarker("If not hidden during gameplay, lower alpha to this instead.");

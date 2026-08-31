@@ -128,7 +128,7 @@ namespace APReload
             HelpMarker("Can only be changed from settings file.");
 
 
-            ImGui::SliderInt("Reload delay", &reloadDelay, 1, 10);
+            ImGui::SliderInt("Reload delay", &reloadDelay, 1, 10, NULL, ImGuiSliderFlags_AlwaysClamp);
             ImGui::SameLine();
             HelpMarker("How long to wait for the reload.\nLower is faster but may break.\nBest with DivaModLoader PR #36");
 

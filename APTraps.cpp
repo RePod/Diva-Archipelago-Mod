@@ -453,11 +453,11 @@ namespace APTraps
 		sprintf(buf, "%.03f / %.03f", getGameTime(), songLength);
 		ImGui::ProgressBar(getGameTime() / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
 
-		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds");
+		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
 		ImGui::SameLine();
 		HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
 
-		ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds");
+		ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
 		ImGui::SameLine();
 		HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
 
