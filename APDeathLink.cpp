@@ -19,7 +19,7 @@ namespace APDeathLink
 
     // Internal
     int death_link_amnesty_count = 0;
-    bool deathLinked = false; // Set after calling a kill so future kills are ignored (until reset)
+    bool deathLinked = false; // true after calling a kill so future kills are ignored (until reset)
 
     float lastDeathLink = 0.0f; // Compared against APDeathLink::death_link_safety
     float lastCheckedHP = 0.0f; // HP: For delta time against APDeathLink::DivaGameTimer
@@ -89,33 +89,29 @@ namespace APDeathLink
 
     void runAmnesty()
     {
-        if (!death_link) return;
+        if (!death_link || deathLinked) return;
 
-        if (deathLinked) return; // Death already handled.
+        if (death_link_amnesty != 0 && death_link_amnesty_count != 0) {
+            death_link_amnesty_count -= 1;
+            return;
+        }
+
+        APLogger::print("DeathLink > Send\n");
+        death_link_amnesty_count = death_link_amnesty;
 
         // TODO: Slot aliases?
         static std::string msg = "The Disappearance of " + std::string(APClient::getSlotName());
 
-        if (death_link_amnesty == 0 || death_link_amnesty_count == 0) {
-            APLogger::print("DeathLink > Send\n");
-            death_link_amnesty_count = death_link_amnesty;
+        AP_Bounce bounce;
+        bounce.tags = &death_link_tags;
 
-            AP_Bounce bounce;
-            bounce.tags = &death_link_tags;
+        json data;
+        data["time"] = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        data["source"] = APClient::getSlotName();
+        data["cause"] = msg.c_str();
+        bounce.data = data.dump();
 
-            json data;
-            std::chrono::time_point<std::chrono::system_clock> timestamp = std::chrono::system_clock::now();
-            data["time"] = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(timestamp.time_since_epoch()).count();
-            data["source"] = APClient::getSlotName();
-            data["cause"] = msg.c_str();
-            bounce.data = data.dump();
-
-            AP_SendBounce(bounce);
-
-            return;
-        }
-
-        death_link_amnesty_count -= 1;
+        AP_SendBounce(bounce);
     }
 
     void recvHP()
@@ -279,6 +275,8 @@ namespace APDeathLink
 
     void ImGuiTab()
     {
+        ImGui::PushItemWidth(-1 * (ImGui::GetContentRegionAvail().x * 0.45f));
+
         if (devMode || HPdenominator > 1) {
             float progress = (float)min(HPdenominator, (HPdenominator - HPnumerator)) / (float)HPdenominator;
             char buf[8];
@@ -314,8 +312,10 @@ namespace APDeathLink
         HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
 
         if (death_link) {
-            if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20))
+            if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20)) {
+                death_link_amnesty = max(0, death_link_amnesty);
                 death_link_amnesty_count = death_link_amnesty;
+            }
             ImGui::SameLine();
             HelpMarker("Amount of additional own deaths needed before sending one Death Link. 0 would be every death, 1 every other, etc.");
 
@@ -325,11 +325,11 @@ namespace APDeathLink
                 ImGui::ProgressBar(static_cast<float>(death_link_amnesty - death_link_amnesty_count) / static_cast<float>(death_link_amnesty), ImVec2(0,0), overlay);
             }
 
-            ImGui::SliderInt("Death Link Percent", &death_link_percent, 0, 100, "%d%%");
+            ImGui::SliderInt("Death Link Percent", &death_link_percent, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
             ImGui::SameLine();
             HelpMarker("Percent of max HP to lose on receive.\n<100 for non-lethal, but makes Life Bonuses harder which may affect score by up to 2%.");
 
-            ImGui::SliderFloat("Death Link Safety", &death_link_safety, 0.0f, 30.0f, "%.1f seconds");
+            ImGui::SliderFloat("Death Link Safety", &death_link_safety, 0.0f, 30.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
             ImGui::SameLine();
             HelpMarker("Seconds after receiving where dying does not send one out.");
 
@@ -369,5 +369,7 @@ namespace APDeathLink
                 HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
             }
         }
+
+        ImGui::PopItemWidth();
     }
 }
