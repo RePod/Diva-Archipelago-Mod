@@ -206,6 +206,7 @@ extern "C"
     {
         APClient::CheckMessages();
         APGUI::onFrame(swapChain);
+        APIDHandler::slowReleaseRun();
 
         if (!ImGui::GetIO().WantCaptureKeyboard)
             APReload::scan();

@@ -5,11 +5,15 @@
 
 namespace APIDHandler
 {
-	// Internal
-	bool exists = false;
+	// Configurables
 	bool freeplay = false;
-	bool hide_checked = true;
+	bool hide_checked = true; // Settings option
+	bool slowRelease = false;
+	int slowReleaseInterval = 180;
+
+	// Internal
 	bool reloading = false;
+	std::chrono::system_clock::time_point slowReleaseNext;
 
 	auto &CheckedLocations = APClient::CheckedLocations;
 	auto &seedIDs = APClient::seedIDs;
@@ -18,7 +22,7 @@ namespace APIDHandler
 	auto &item_ap_id_to_name = APClient::item_ap_id_to_name;
 	int availableLocs = 0; // Calculated on tracker update
 
-	ImGuiTableSortSpecs* sort_specs;
+	ImGuiTableSortSpecs* sort_specs = nullptr;
 	std::vector<TrackerItem> TrackerItems;
 	std::string trackerLine; // Holds the formatted Tracker line
 
@@ -91,6 +95,7 @@ namespace APIDHandler
 	{
 		//APLogger::print("IDHandler reset\n");
 		freeplay = false;
+		slowRelease = false;
 		updateTrackerLine();
 		unlock();
 	}
@@ -107,6 +112,32 @@ namespace APIDHandler
 
 	void updateTrackerLine()
 	{
+		TrackerItems.clear();
+		int index = 0; // TODO: Track from Client instead? There will be gaps, but closer to web tracker.
+		availableLocs = 0;
+		for (const auto& songID : recvIDs) {
+			index += 1;
+
+			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * AP_ID_FACTOR) == CheckedLocations.end();
+			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * AP_ID_FACTOR) + 1) == CheckedLocations.end();
+			int available = (int)loc1checked + (int)loc2checked;
+
+			if (hide_checked && available == 0)
+				continue;
+
+			if (songID != APClient::victoryID / AP_ID_FACTOR)
+				availableLocs += available;
+
+			TrackerItem it;
+
+			it.checksAvailable = available;
+			it.name = item_ap_id_to_name[songID * AP_ID_FACTOR];
+			it.songID = songID;
+			it.receivedIndex = index;
+
+			TrackerItems.push_back(it);
+		}
+
 		int64_t totalLocs = (seedIDs.size() - 1) * 2;
 		int64_t foundLocs = min(static_cast<int64_t>(CheckedLocations.size()), totalLocs);
 		APClient::locHave = static_cast<int>(foundLocs);
@@ -128,33 +159,8 @@ namespace APIDHandler
 		//std::ofstream tracker("stats.txt");
 		//tracker << trackerLine;
 
-		TrackerItems.clear();
-		int index = 0; // TODO: Track from Client instead? There will be gaps, but closer to web tracker.
-		availableLocs = 0;
-		for (const auto& songID : recvIDs) {
-			index += 1;
-
-			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * AP_ID_FACTOR) == CheckedLocations.end();
-			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * AP_ID_FACTOR) + 1) == CheckedLocations.end();
-			int available = (int)loc1checked + (int)loc2checked;
-
-			availableLocs += available;
-
-			if (hide_checked && available == 0)
-				continue;
-
-			TrackerItem it;
-
-			it.checksAvailable = available;
-			it.name = item_ap_id_to_name[songID * AP_ID_FACTOR];
-			it.songID = songID;
-			it.receivedIndex = index;
-
-			TrackerItems.push_back(it);
-		}
-
 		// Always sort. Not too bad due to running from a CB.
-		if (sort_specs != nullptr /* && sort_specs->SpecsDirty */) {
+		if (TrackerItems.size() > 1 && sort_specs != nullptr && sort_specs->SpecsCount > 0 /* && sort_specs->SpecsDirty */) {
 			std::sort(
 				TrackerItems.begin(), TrackerItems.end(),
 				[](TrackerItem a, TrackerItem b)
@@ -175,6 +181,30 @@ namespace APIDHandler
 		}
 	}
 
+	void slowReleaseTouch()
+	{
+		slowReleaseNext = std::chrono::system_clock::now() + std::chrono::seconds(slowReleaseInterval);
+	}
+
+	void slowReleaseRun()
+	{
+		if (!slowRelease || AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated ||
+			availableLocs == 0 || std::chrono::system_clock::now() < slowReleaseNext)
+			return;
+
+		for (const auto& item : TrackerItems) {
+			if (item.checksAvailable == 0 /*|| item.songID == APClient::victoryID / AP_ID_FACTOR*/)
+				continue; // If 'Hide checked' is false
+
+			APLogger::print("Slow released: %s\n", item.name.c_str());
+			APClient::LocationSend(item.songID);
+
+			break;
+		}
+
+		slowReleaseTouch();
+	}
+
 	void ImGuiTab()
 	{
 		if (ImGui::CalcTextSize(trackerLine.c_str()).x < ImGui::GetContentRegionAvail().x)
@@ -182,6 +212,7 @@ namespace APIDHandler
 		//ImGui::PushTextWrapPos(ImGui::GetCursorPosX());
 		ImGui::TextWrapped(trackerLine.c_str());
 		//ImGui::PopTextWrapPos();
+
 		ImGui::Separator();
 
 		if (ImGui::BeginTable("tableTrackerOptions", 2, ImGuiTableFlags_SizingStretchSame))
@@ -206,6 +237,24 @@ namespace APIDHandler
 			ImGui::EndTable();
 		}
 
+		if (APClient::devMode) {
+			if (ImGui::Checkbox("Slow release every", &slowRelease))
+				slowReleaseTouch();
+			ImGui::SameLine();
+			ImGui::PushItemWidth(min(ImGui::GetContentRegionAvail().x * 0.25f, 80.0f));
+			if (ImGui::SliderInt("seconds", &slowReleaseInterval, 60, 300, "%d"))
+				slowReleaseInterval = max(1, slowReleaseInterval);
+			ImGui::PopItemWidth();
+			ImGui::SameLine();
+			HelpMarker("Clears an unchecked song at the given interval.\nSends in listed, sorted order.\nDoes not prioritize hints.");
+			if (slowRelease) {
+				ImGui::SameLine();
+				ImGui::BeginDisabled();
+				ImGui::Text("%.1fs", max(0.0f, std::chrono::duration<float>(slowReleaseNext - std::chrono::system_clock::now()).count()));
+				ImGui::EndDisabled();
+			}
+		}
+
 		if (ImGui::BeginTable("tableTracker", 4,
 			ImGuiTableFlags_Sortable |
 			ImGuiTableFlags_BordersInner | ImGuiTableFlags_Hideable | ImGuiTableFlags_HighlightHoveredColumn |
@@ -221,7 +270,7 @@ namespace APIDHandler
 			ImGui::TableHeadersRow();
 
 			sort_specs = ImGui::TableGetSortSpecs();
-			if (sort_specs->SpecsDirty)
+			if (sort_specs != nullptr && sort_specs->SpecsDirty)
 				updateTrackerLine();
 
 			for (const auto& item : TrackerItems) {
@@ -263,6 +312,10 @@ namespace APIDHandler
 
 				if (isHinted)
 					ImGui::PopStyleColor();
+
+				ImGui::TableSetColumnIndex(0);
+
+				ImGui::Selectable("##xx", false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowOverlap);
 
 				if (ImGui::BeginPopupContextItem("##xx"))
 				{

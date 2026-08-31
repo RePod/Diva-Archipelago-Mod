@@ -22,6 +22,8 @@ namespace APIDHandler
 	bool check(std::string& line);
 	void reset();
 
+	void slowReleaseRun();
+
 	void updateTrackerLine();
 	void ImGuiTab();
 }
