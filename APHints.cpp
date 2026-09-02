@@ -15,8 +15,7 @@ namespace APHints
     bool hintHideChecked = true;
     bool hintOwnLocationsOnly = false;
 
-    // SpecsDirty to true to sort on next frame visible
-    ImGuiTableSortSpecs* hintSortSpec;
+    bool resortHints = false; // If true, run a sort the next time the Hint table is visible.
 
     // For updating known hints without further !hint chats (and saving on PrintJSONs)
     std::string hintsRaw_S; // Request response, JSON in a string
@@ -69,12 +68,12 @@ namespace APHints
         return false;
     }
 
-    void sortHints()
+    void sortHints(ImGuiTableSortSpecs *hintSortSpec)
     {
-        if (hintSortSpec != nullptr && hintSortSpec->SpecsDirty) {
+        if (hintSortSpec != nullptr) {
             std::sort(
                 Hints.begin(), Hints.end(),
-                [](AP_HintMessage a, AP_HintMessage b)
+                [hintSortSpec](AP_HintMessage a, AP_HintMessage b)
                 {
                     if (hintSortSpec->Specs->ColumnIndex == 0)
                         return a.checked > b.checked;
@@ -92,8 +91,9 @@ namespace APHints
             );
             if (hintSortSpec->Specs->SortDirection == ImGuiSortDirection_Descending)
                 std::reverse(Hints.begin(), Hints.end());
-            hintSortSpec->SpecsDirty = false;
         }
+
+        resortHints = false;
     }
 
     void handleHintMessage(const AP_HintMessage& recvHint)
@@ -106,7 +106,7 @@ namespace APHints
             if (hint == recvHint)
             {
                 hint.checked = recvHint.checked;
-                if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
+                resortHints = true;
                 return;
             }
         }
@@ -121,7 +121,7 @@ namespace APHints
         }
 
         Hints.push_back(recvHint);
-        if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
+        resortHints = true;
     }
 
     void refreshHints()
@@ -185,7 +185,7 @@ namespace APHints
             }
         }
 
-        if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
+        resortHints = true;
     }
 
     void updateByItemName(const std::string &itemName)
@@ -200,7 +200,7 @@ namespace APHints
             }
         }
 
-        if (hintSortSpec != nullptr) hintSortSpec->SpecsDirty = true;
+        resortHints = true;
     }
 
     void ImGuiTab()
@@ -262,9 +262,9 @@ namespace APHints
             ImGui::TableSetupColumn("Location");
             ImGui::TableHeadersRow();
 
-            hintSortSpec = ImGui::TableGetSortSpecs();
-            if (hintSortSpec != nullptr && hintSortSpec->SpecsDirty)
-                sortHints();
+            auto hintSortSpec = ImGui::TableGetSortSpecs();
+            if (hintSortSpec != nullptr && (hintSortSpec->SpecsDirty || resortHints))
+                sortHints(hintSortSpec);
 
             int uid = 0;
             for (const AP_HintMessage& hint : Hints) {
