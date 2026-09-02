@@ -24,6 +24,12 @@ namespace APIDHandler
 
 	void slowReleaseRun();
 
-	void updateTrackerLine();
+	// Queue a sort the next time the Tracker table is visible.
+	// The Tracker (items) will still update in the background, but unsorted.
+	void queueTrackerSort();
+
+	void sortTrackerItems(const ImGuiTableSortSpecs* sort_specs);
+
+	void refreshTracker();
 	void ImGuiTab();
 }

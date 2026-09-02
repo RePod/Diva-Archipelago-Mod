@@ -22,9 +22,9 @@ namespace APIDHandler
 	auto &item_ap_id_to_name = APClient::item_ap_id_to_name;
 	int availableLocs = 0; // Calculated on tracker update
 
-	ImGuiTableSortSpecs* sort_specs = nullptr;
-	std::vector<TrackerItem> TrackerItems;
-	std::string trackerLine; // Holds the formatted Tracker line
+	bool queuedTrackerSort = false; // If true, the next time the table is visible run a sort.
+	std::vector<TrackerItem> TrackerItems; // Updates when refreshTracker(). Sorted when visible and queuedTrackerSort or the sort spec is dirty.
+	std::string trackerLine; // Holds the formatted Tracker line (Songs: #/# ...) from refreshTracker()
 
 	auto &HintedIDs = APHints::HintedIDs;
 
@@ -96,7 +96,7 @@ namespace APIDHandler
 		//APLogger::print("IDHandler reset\n");
 		freeplay = false;
 		slowRelease = false;
-		updateTrackerLine();
+		refreshTracker();
 		unlock();
 	}
 
@@ -110,7 +110,35 @@ namespace APIDHandler
 		reloading = false;
 	}
 
-	void updateTrackerLine()
+	void queueTrackerSort()
+	{
+		queuedTrackerSort = true;
+	}
+
+	void sortTrackerItems(const ImGuiTableSortSpecs* sort_specs)
+	{
+		// Always sort. Not too bad due to running from a CB.
+		if (TrackerItems.size() > 1 /* && sort_specs->SpecsDirty */) {
+			std::sort(
+				TrackerItems.begin(), TrackerItems.end(),
+				[sort_specs](TrackerItem a, TrackerItem b)
+				{
+					if (sort_specs->Specs->ColumnIndex == 0)
+						return a.checksAvailable > b.checksAvailable;
+					else if (sort_specs->Specs->ColumnIndex == 1)
+						return a.receivedIndex > b.receivedIndex;
+					else if (sort_specs->Specs->ColumnIndex == 2)
+						return a.songID > b.songID;
+
+					return a.name > b.name;
+				}
+			);
+			if (sort_specs->Specs->SortDirection == ImGuiSortDirection_Descending)
+				std::reverse(TrackerItems.begin(), TrackerItems.end());
+		}
+	}
+
+	void refreshTracker()
 	{
 		TrackerItems.clear();
 		int index = 0; // TODO: Track from Client instead? There will be gaps, but closer to web tracker.
@@ -158,27 +186,6 @@ namespace APIDHandler
 		// Dump for i.e. stream overlay
 		//std::ofstream tracker("stats.txt");
 		//tracker << trackerLine;
-
-		// Always sort. Not too bad due to running from a CB.
-		if (TrackerItems.size() > 1 && sort_specs != nullptr && sort_specs->SpecsCount > 0 /* && sort_specs->SpecsDirty */) {
-			std::sort(
-				TrackerItems.begin(), TrackerItems.end(),
-				[](TrackerItem a, TrackerItem b)
-				{
-					if (sort_specs->Specs->ColumnIndex == 0)
-						return a.checksAvailable > b.checksAvailable;
-					else if (sort_specs->Specs->ColumnIndex == 1)
-						return a.receivedIndex > b.receivedIndex;
-					else if (sort_specs->Specs->ColumnIndex == 2)
-						return a.songID > b.songID;
-
-					return a.name > b.name;
-				}
-			);
-			if (sort_specs->Specs->SortDirection == ImGuiSortDirection_Descending)
-				std::reverse(TrackerItems.begin(), TrackerItems.end());
-			sort_specs->SpecsDirty = false;
-		}
 	}
 
 	void slowReleaseTouch()
@@ -221,18 +228,18 @@ namespace APIDHandler
 			ImGui::TableSetColumnIndex(0);
 
 			if (ImGui::Checkbox("Freeplay", &freeplay))
-				APReload::run();
+				if (!ImGui::GetIO().KeyShift) APReload::run();
 			ImGui::SameLine();
-			HelpMarker("The entire song list will be available except for songs that have not been received yet.\n\nDeath Link and Traps still apply.");
+			HelpMarker("The entire song list will be available except for songs that have not been received yet.\nDeath Link and Traps still apply.\nShift+Click to not reload.");
 
 			ImGui::TableSetColumnIndex(1);
 
 			if (ImGui::Checkbox("Hide checked", &hide_checked)) {
-				sort_specs->SpecsDirty = true;
-				APReload::run();
+				queuedTrackerSort = true;
+				if (!ImGui::GetIO().KeyShift) APReload::run();
 			}
 			ImGui::SameLine();
-			HelpMarker("When not in Freeplay, the song list will only show songs that have checks.");
+			HelpMarker("When not in Freeplay, the song list will only show songs that have checks.\nShift+Click to not reload.");
 
 			ImGui::EndTable();
 		}
@@ -269,9 +276,11 @@ namespace APIDHandler
 			ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_DefaultSort);
 			ImGui::TableHeadersRow();
 
-			sort_specs = ImGui::TableGetSortSpecs();
-			if (sort_specs != nullptr && sort_specs->SpecsDirty)
-				updateTrackerLine();
+			ImGuiTableSortSpecs* sort_specs = ImGui::TableGetSortSpecs();
+			if (sort_specs && (queuedTrackerSort || sort_specs->SpecsDirty)) {
+				refreshTracker();
+				sortTrackerItems(sort_specs);
+			}
 
 			for (const auto& item : TrackerItems) {
 				ImGui::PushID(static_cast<int>(item.songID));

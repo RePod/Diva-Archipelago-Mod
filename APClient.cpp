@@ -212,7 +212,7 @@ namespace APClient
             }
         }
 
-        APIDHandler::updateTrackerLine();
+        APIDHandler::refreshTracker();
     }
 
     void LocationChecked(int64_t locationID)
@@ -222,7 +222,7 @@ namespace APClient
 
         CheckedLocations.push_back(locationID);
         UpdateMissing();
-        APIDHandler::updateTrackerLine();
+        APIDHandler::refreshTracker();
     }
 
     void connect()
