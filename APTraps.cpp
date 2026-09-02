@@ -410,23 +410,20 @@ namespace APTraps
 		if (savedIcon > 12)
 			savedIcon = currentIcon;
 
-		if (!alternateArrows && nextIcon != 4)
-			nextIcon %= 4;
-
 		while (currentIcon == nextIcon) {
+
 			nextIcon = dist(mt);
 
-			if (!alternateArrows && nextIcon != 4)
-				nextIcon %= 4;
-
-			if (currentIcon <= 3)
-				nextIcon %= 4;
-			else if (currentIcon >= 5 && currentIcon <= 8)
-				nextIcon = 5 + (nextIcon % 4);
-			else if (currentIcon >= 9)
-				nextIcon = 9 + (nextIcon % 4);
-			else
-				nextIcon = savedIcon;
+			if (!alternateArrows) {
+				if (currentIcon <= 3)
+					nextIcon %= 4;
+				else if (currentIcon >= 5 && currentIcon <= 8)
+					nextIcon = 5 + (nextIcon % 4);
+				else if (currentIcon >= 9)
+					nextIcon = 9 + (nextIcon % 4);
+				else // 4
+					nextIcon = savedIcon;
+			}
 		}
 
 		WRITE_MEMORY(getIconAddress(), int, nextIcon);
