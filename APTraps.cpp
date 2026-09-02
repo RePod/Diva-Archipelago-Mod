@@ -240,6 +240,8 @@ namespace APTraps
 		float now = getGameTime();
 		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
 
+		resetIcon();
+
 		APLogger::print("[%6.2f] Trap < Icon (expires: %.2f)\n", now, expires);
 		timestampIconStart = now;
 		rollIcon();
