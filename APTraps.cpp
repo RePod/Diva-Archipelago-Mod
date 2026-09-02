@@ -541,6 +541,13 @@ namespace APTraps
 					ImGui::Text("%.02f", trapDuration + timestampSlow - getGameTime());
 				}
 
+				if (stutterQueued)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("Stutter");
+				}
+
 				if (savedIcon <= 12)
 				{
 					ImGui::TableNextRow();
