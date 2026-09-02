@@ -42,7 +42,7 @@ LRESULT CALLBACK HookedWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 HOOK(void, __fastcall, _PvResultsFinalize, 0x14024B800, char* PvPlayData, long long a2)
 {
-    if (!APClient::devMode || AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated) {
+    if (!APClient::devMode && AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated) {
         original_PvResultsFinalize(PvPlayData, a2);
         return;
     }
