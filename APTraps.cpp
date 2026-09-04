@@ -250,7 +250,7 @@ namespace APTraps
 		APLogger::print("[%6.2f] Trap < Stutter\n", now);
 
 		isStutter = true;
-		timestampStutter = now + 1.0f;
+		timestampStutter = now + 0.5f;
 	}
 
 	void touchIcon()
@@ -297,7 +297,7 @@ namespace APTraps
 
 	void linkRecv(const std::string trapName)
 	{
-		if (!trap_link || !APGUI::isInGame()) return;
+		if (!trap_link || !APGUI::isInGame() || trapName.empty()) return;
 
 		auto trap = trapMap.find(trapName);
 
@@ -342,10 +342,10 @@ namespace APTraps
 			return;
 		}
 
-		runSlow();
-
 		if (now - lastRun < 0.1f)
 			return;
+
+		runSlow();
 
 		lastRun = now;
 
@@ -502,7 +502,7 @@ namespace APTraps
 		if (ImGui::Checkbox("Trap Link", &trap_link))
 			APClient::UpdateTags();
 		ImGui::SameLine();
-		HelpMarker("Share traps with other Trap Link players.\nLinked traps will only apply during play instead of queuing up.");
+		HelpMarker("Share traps with other Trap Link players.\nLinked traps will only apply during play instead of queuing up.\nNote: Traps of the same name from other games will apply regardless of the following option.");
 
 		if (trap_link) {
 			ImGui::Checkbox("Traps from other games", &trap_link_others);
@@ -562,6 +562,15 @@ namespace APTraps
 					ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
 				}
 
+				if (isStutter)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("Stutter");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.02f (%i > %i FPS)", timestampStutter - getGameTime(), prevFramerate, stutterTarget);
+				}
+
 				if (isSlow)
 				{
 					ImGui::TableNextRow();
@@ -569,15 +578,6 @@ namespace APTraps
 					ImGui::Text("Slow");
 					ImGui::TableNextColumn();
 					ImGui::Text("%.02f (%i > %i FPS)", trapDuration + timestampSlow - getGameTime(), prevFramerate, slowTarget);
-				}
-
-				if (isStutter)
-				{
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					ImGui::Text("Stutter");
-					ImGui::TableNextColumn();
-					ImGui::Text("%i > %i FPS", prevFramerate, stutterTarget);
 				}
 
 				if (savedIcon <= 12)

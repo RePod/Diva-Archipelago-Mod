@@ -49,7 +49,5 @@ namespace APTraps
 	int getCurrentIcon();
 	void rollIcon();
 
-	void checkStutter();
-
 	void ImGuiTab();
 }
