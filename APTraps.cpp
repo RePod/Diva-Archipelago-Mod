@@ -489,7 +489,7 @@ namespace APTraps
 		HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
 
 		if (ImGui::SliderInt("Slow FPS", &slowTarget, 20, 40))
-			slowTarget = std::clamp(slowTarget, 5, 60);
+			slowTarget = std::clamp(slowTarget, 15, 60);
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
 		ImGui::Checkbox("Icon Trap: Alternate arrow colors", &alternateArrows);
