@@ -80,8 +80,8 @@ namespace APTraps
 	bool isHidden = false; // Had trouble with this as a bool(timestamp > 0)
 	bool isStutter = false;
 	bool isSlow = false;
-	int stutterTarget = 10;
-	int prevFramerate = 0;
+	int stutterTarget = 10; // FPS that Stutter drops to briefly. Too low can get the trap "stuck" on for longer than intended.
+	int prevFramerate = 0; // Target framerate before Stutter or Slow overwrite it.
 
 	float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
 	float timestampSudden = 0.0f;
@@ -93,7 +93,6 @@ namespace APTraps
 
 	std::mt19937 mt;
 	std::uniform_int_distribution<int> dist(0, 12); // 0-3 PS, 4 Arrows, 5-8 NSW, 9-12 X
-	std::uniform_int_distribution<int> glyph(0, 2);
 
 	void config(const toml::table& settings)
 	{
@@ -110,7 +109,7 @@ namespace APTraps
 		APLogger::print("trap icon_interval: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
 
 		int config_slow_target = section["slow_target"].value_or(slowTarget);
-		slowTarget = std::clamp(config_slow_target, 10, 60);
+		slowTarget = std::clamp(config_slow_target, 15, 60);
 		APLogger::print("slow_target: %i (config: %i)\n", slowTarget, config_slow_target);
 
 		trapOverlap = section["overlap"].value_or(false);
@@ -468,7 +467,7 @@ namespace APTraps
 		if (randomizeGlyphs) {
 			if (savedGlyph == 39)
 				savedGlyph = *(int*)PvControllerGlyphBase;
-			int out = 1 + (4 * glyph(mt));
+			int out = dist(mt);
 			WRITE_MEMORY(PvControllerGlyphBase, int, out);
 		}
 	}
