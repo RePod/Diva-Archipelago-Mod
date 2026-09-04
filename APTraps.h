@@ -23,7 +23,6 @@ namespace APTraps
 	extern bool isSudden;
 	extern bool isHidden;
 	extern bool isSlow;
-	extern bool stutterQueued;
 	extern bool trap_link;
 
 	void config(const toml::table& settings);

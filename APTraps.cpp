@@ -13,12 +13,11 @@ namespace APTraps
 	bool trapOverlap = false;
 	bool randomizeGlyphs = false;
 	bool alternateArrows = true;
-	int slowTarget = 33;
+	int slowTarget = 30;
 
 	bool trap_link = false; // Is Trap Link enabled?
 	bool trap_link_others = false; // Handle known traps from other games?
 	std::vector<std::string> trap_link_tags = { "TrapLink" }; // inb4 Trap Link Groups
-	bool stutterQueued = false;
 
 	// Traps native to this game. Should map 1:1 with TrapID.
 	std::unordered_map<std::string, std::vector<TrapID>> trapMap = {
@@ -79,13 +78,17 @@ namespace APTraps
 	int savedGlyph = 39;
 	bool isSudden = false; // Had trouble with this as a bool(timestamp > 0)
 	bool isHidden = false; // Had trouble with this as a bool(timestamp > 0)
+	bool isStutter = false;
 	bool isSlow = false;
+	int stutterTarget = 10;
+	int prevFramerate = 0;
 
 	float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
 	float timestampSudden = 0.0f;
 	float timestampHidden = 0.0f;
 	float timestampIconStart = 0.0f;
 	float timestampIconLast = 0.0f;
+	float timestampStutter = 0.0f;
 	float timestampSlow = 0.0f;
 
 	std::mt19937 mt;
@@ -106,8 +109,8 @@ namespace APTraps
 		iconInterval = std::clamp(config_iconinterval, 0.0f, 60.0f);
 		APLogger::print("trap icon_interval: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
 
-		int config_slow_target = section["slow_target"].value_or(32);
-		slowTarget = std::clamp(config_slow_target, 15, 40);
+		int config_slow_target = section["slow_target"].value_or(slowTarget);
+		slowTarget = std::clamp(config_slow_target, 10, 60);
 		APLogger::print("slow_target: %i (config: %i)\n", slowTarget, config_slow_target);
 
 		trapOverlap = section["overlap"].value_or(false);
@@ -141,6 +144,15 @@ namespace APTraps
 		settings.insert("traps", config);
 	}
 
+	void resetFramerate()
+	{
+		if (prevFramerate > 0) {
+			int* framerate = reinterpret_cast<int*>(0x1414ABBB8);
+			*framerate = max(prevFramerate, 30);
+			prevFramerate = 0;
+		}
+	}
+
 	int reset()
 	{
 		APLogger::print("Traps: reset\n");
@@ -153,10 +165,15 @@ namespace APTraps
 		timestampHidden = 0.0f;
 		timestampIconStart = 0.0f;
 		timestampIconLast = 0.0f;
+		timestampStutter = 0.0;
 		timestampSlow = 0.0f;
 		isHidden = false;
 		isSudden = false;
+		isStutter = false;
 		isSlow = false;
+
+		resetFramerate();
+
 		lastRun = 0.0f;
 
 		return 0;
@@ -232,7 +249,8 @@ namespace APTraps
 		float now = getGameTime();
 		APLogger::print("[%6.2f] Trap < Stutter\n", now);
 
-		stutterQueued = true;
+		isStutter = true;
+		timestampStutter = now + 1.0f;
 	}
 
 	void touchIcon()
@@ -324,7 +342,7 @@ namespace APTraps
 			return;
 		}
 
-		APTraps::runSlow();
+		runSlow();
 
 		if (now - lastRun < 0.1f)
 			return;
@@ -363,28 +381,45 @@ namespace APTraps
 				resetIcon();
 			}
 		}
-
-		// More authetnic than from OnFrame, but not truly authentic.
-		checkStutter();
 	}
 
 	void runSlow()
 	{
-		if (APGUI::isInGame() && isSlow) {
-			static std::chrono::time_point<std::chrono::system_clock> timestamp = std::chrono::system_clock::now();
-
+		if (APGUI::isInGame() && isStutter || isSlow) {
 			float now = getGameTime();
-			std::this_thread::sleep_for(std::chrono::microseconds(1'000'000 / slowTarget));
-			auto post_sleep = std::chrono::system_clock::now();
-			timestamp = post_sleep;
+			int* framerate = reinterpret_cast<int*>(0x1414ABBB8);
+			int target = 60;
 
-			auto deltaSlow = now - timestampSlow;
+			if (isStutter) {
+				if (now > timestampStutter) {
+					APLogger::print("[%6.2f] Trap > Stutter expired\n", now);
+					timestampStutter = 0.0f;
+					isStutter = false;
 
-			if (trapDuration > 0.0f && deltaSlow >= trapDuration) {
-				APLogger::print("[%6.2f] Trap > Slow expired\n", now);
-				timestampSlow = 0.0f;
-				isSlow = false;
+					resetFramerate();
+					return;
+				}
+
+				target = stutterTarget;
+			} else if (isSlow) {
+				auto deltaSlow = now - timestampSlow;
+				if (trapDuration > 0.0f && deltaSlow >= trapDuration) {
+					APLogger::print("[%6.2f] Trap > Slow expired\n", now);
+					timestampSlow = 0.0f;
+					isSlow = false;
+
+					resetFramerate();
+					return;
+				}
+
+				target = slowTarget;
 			}
+
+			if (prevFramerate == 0)
+				prevFramerate = *framerate;
+
+			if (*framerate != target)
+				*framerate = target;
 		}
 	}
 
@@ -438,15 +473,6 @@ namespace APTraps
 		}
 	}
 
-	void checkStutter()
-	{
-		if (!stutterQueued)
-			return;
-
-		stutterQueued = false;
-		std::this_thread::sleep_for(std::chrono::milliseconds(100 * ((rand() % 7) + 1)));
-	}
-
 	void ImGuiTab()
 	{
 		char buf[32];
@@ -495,11 +521,11 @@ namespace APTraps
 			if (ImGui::Button("Hidden"))
 				touchHidden();
 			ImGui::SameLine();
-			if (ImGui::Button("Stutter"))
-				touchStutter();
-			ImGui::SameLine();
 			if (ImGui::Button("Icon"))
 				touchIcon();
+			ImGui::SameLine();
+			if (ImGui::Button("Stutter"))
+				touchStutter();
 			ImGui::SameLine();
 			if (ImGui::Button("Slow"))
 				touchSlow();
@@ -513,6 +539,8 @@ namespace APTraps
 					linkRecv(std::string(tl));
 				if (!APGUI::isInGame()) ImGui::EndDisabled();
 			}
+
+			ImGui::SliderInt("Stutter FPS", &stutterTarget, 1, 10, NULL, ImGuiSliderFlags_AlwaysClamp);
 
 			if (ImGui::BeginTable("tableTraps", 2))
 			{
@@ -540,14 +568,16 @@ namespace APTraps
 					ImGui::TableNextColumn();
 					ImGui::Text("Slow");
 					ImGui::TableNextColumn();
-					ImGui::Text("%.02f", trapDuration + timestampSlow - getGameTime());
+					ImGui::Text("%.02f (%i > %i FPS)", trapDuration + timestampSlow - getGameTime(), prevFramerate, slowTarget);
 				}
 
-				if (stutterQueued)
+				if (isStutter)
 				{
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					ImGui::Text("Stutter");
+					ImGui::TableNextColumn();
+					ImGui::Text("%i > %i FPS", prevFramerate, stutterTarget);
 				}
 
 				if (savedIcon <= 12)
