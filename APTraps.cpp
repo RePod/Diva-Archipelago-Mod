@@ -277,7 +277,7 @@ namespace APTraps
 		isSlow = true;
 	}
 
-	void linkSend(const std::string trapName)
+	void linkSend(const std::string& trapName)
 	{
 		if (!trap_link || !APGUI::isInGame()) return;
 
@@ -289,12 +289,12 @@ namespace APTraps
 		data["source"] = APClient::getSlotName();
 		data["trap_name"] = trapName;
 
-		bounce.data = to_string(data);
+		bounce.data = data.dump();
 
 		AP_SendBounce(bounce);
 	}
 
-	void linkRecv(const std::string trapName)
+	void linkRecv(const std::string& trapName)
 	{
 		if (!trap_link || !APGUI::isInGame() || trapName.empty()) return;
 
@@ -303,10 +303,10 @@ namespace APTraps
 		if (trap_link_others && trap == trapMap.end())
 			trap = trapMapExt.find(trapName);
 
-		if (trap == trapMap.end())
+		if (trap == trapMap.end() || trap == trapMapExt.end())
 			return;
 
-		auto traps = trap->second;
+		const auto& traps = trap->second;
 		float now = getGameTime();
 		APLogger::print("[%6.2f] Trap < Linked: %s\n", now, trapName.c_str());
 
@@ -489,6 +489,8 @@ namespace APTraps
 
 		if (ImGui::SliderInt("Slow FPS", &slowTarget, 20, 40))
 			slowTarget = std::clamp(slowTarget, 15, 60);
+		ImGui::SameLine();
+		HelpMarker("Chain Slides may have issues below 30 FPS, based on BPM.");
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
 		ImGui::Checkbox("Icon Trap: Alternate arrow colors", &alternateArrows);
@@ -514,6 +516,9 @@ namespace APTraps
 		if (devMode) {
 			ImGui::Separator();
 
+			if (ImGui::Button("Reset"))
+				reset();
+			ImGui::SameLine();
 			if (ImGui::Button("Sudden"))
 				touchSudden();
 			ImGui::SameLine();

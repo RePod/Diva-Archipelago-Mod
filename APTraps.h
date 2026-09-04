@@ -40,8 +40,8 @@ namespace APTraps
 	void touchStutter();
 	void touchIcon();
 	void touchSlow();
-	void linkSend(const std::string trapName);
-	void linkRecv(const std::string trapName);
+	void linkSend(const std::string& trapName);
+	void linkRecv(const std::string& trapName);
 
 	uint64_t getGameControlConfig();
 	uint64_t getIconAddress();
