@@ -442,7 +442,7 @@ namespace APTraps
 	void rollIcon()
 	{
 		int currentIcon = getCurrentIcon();
-		int nextIcon = dist(mt);
+		int nextIcon = currentIcon;
 
 		if (savedIcon > 12)
 			savedIcon = currentIcon;
