@@ -41,7 +41,7 @@ namespace APClient
     void DataRequest(const std::string key, const std::function<void(std::string raw)> callback);
     void CheckMessages();
 
-    void RecvDeath(std::string src, std::string cause);
+    void RecvDeath(const std::string& src, const std::string& cause);
 
     bool LoadDatapackage();
 

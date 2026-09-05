@@ -47,7 +47,7 @@ namespace APIDHandler
 		settings.insert("tracker", config);
 	}
 
-	bool check(std::string& line)
+	bool check(const std::string& line)
 	{
 		if (missingIDs.size() == 0 || line.find("pv_") != 0 /*|| AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated*/)
 			return true;
@@ -69,9 +69,8 @@ namespace APIDHandler
 		if (144 == pvID || 700 == pvID)
 			return true;
 
-		auto begin = freeplay ? missingIDs.begin() : recvIDs.begin();
-		auto end = freeplay ? missingIDs.end() : recvIDs.end();
-		auto contains = std::find(begin, end, pvID) != end;
+		auto &IDlist = freeplay ? missingIDs : recvIDs;
+		auto contains = std::ranges::find(IDlist, pvID) != IDlist.end();
 
 		if (!freeplay && contains && hide_checked)
 		{
@@ -146,8 +145,8 @@ namespace APIDHandler
 		for (const auto& songID : recvIDs) {
 			index += 1;
 
-			auto loc1checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), songID * AP_ID_FACTOR) == CheckedLocations.end();
-			auto loc2checked = std::find(CheckedLocations.begin(), CheckedLocations.end(), (songID * AP_ID_FACTOR) + 1) == CheckedLocations.end();
+			auto loc1checked = std::ranges::find(CheckedLocations, songID * AP_ID_FACTOR) == CheckedLocations.end();
+			auto loc2checked = std::ranges::find(CheckedLocations, songID * AP_ID_FACTOR + 1) == CheckedLocations.end();
 			int available = (int)loc1checked + (int)loc2checked;
 
 			if (hide_checked && available == 0)
@@ -312,7 +311,7 @@ namespace APIDHandler
 				if (*(bool*)PvPlayData && item.songID == static_cast<int64_t>(*(int*)(PvPlayData + 0x10)))
 					name = "NP: " + name;
 
-				bool isHinted = std::find(HintedIDs.begin(), HintedIDs.end(), item.songID) != HintedIDs.end();
+				bool isHinted = std::ranges::find(HintedIDs, item.songID) != HintedIDs.end();
 
 				if (isHinted)
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));

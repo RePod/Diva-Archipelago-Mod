@@ -46,7 +46,6 @@ namespace APClient
 
     AP_RoomInfo RoomInfo;
 
-    json slotData;
     std::vector<int64_t> seedIDs = {}; // Song IDs (Love is War [1] = 1) that are part of the seed
     std::vector<int64_t> recvIDs = {}; // Song IDs (Love is War [1] = 1) received as items
     std::vector<int64_t> missingIDs = {}; // Song IDs (Love is War [1] = 1) not yet received
@@ -217,7 +216,7 @@ namespace APClient
 
     void LocationChecked(int64_t locationID)
     {
-        if (std::find(CheckedLocations.begin(), CheckedLocations.end(), locationID) != CheckedLocations.end())
+        if (std::ranges::find(CheckedLocations, locationID) != CheckedLocations.end())
             return;
 
         CheckedLocations.push_back(locationID);
@@ -255,8 +254,6 @@ namespace APClient
 
         DataRequests.clear();
 
-        slotData.clear();
-
         seedIDs.clear();
         recvIDs.clear();
         missingIDs.clear();
@@ -283,8 +280,8 @@ namespace APClient
 
     void PushRecvID(int64_t songID)
     {
-        if (std::find(recvIDs.begin(), recvIDs.end(), songID) != recvIDs.end() ||
-            std::find(seedIDs.begin(), seedIDs.end(), songID) == seedIDs.end())
+        if (std::ranges::find(recvIDs, songID) != recvIDs.end() ||
+            std::ranges::find(seedIDs, songID) == seedIDs.end())
             return;
 
         recvIDs.push_back(songID);
@@ -315,7 +312,7 @@ namespace APClient
     {
         // There is no current way to send an arbitrary ID so limit to received ones. Usually what's on the Tracker.
         // Specifically to prevent misfires of the AP and Tutorial songs but may benefit Freeplay.
-        if (std::find(recvIDs.begin(), recvIDs.end(), pvID) == recvIDs.end() /*&& !devMode*/) {
+        if (std::ranges::find(recvIDs, pvID) == recvIDs.end() /*&& !devMode*/) {
             APLogger::print("Client: Skip location send for ID %i (not received)\n", pvID);
             return;
         }
@@ -426,7 +423,7 @@ namespace APClient
         }
     }
 
-    void RecvDeath(std::string src, std::string cause)
+    void RecvDeath(const std::string& src, const std::string& cause)
     {
         LogAppend(cause.empty() ? src + " died" : cause);
 

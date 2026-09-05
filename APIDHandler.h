@@ -19,7 +19,7 @@ namespace APIDHandler
 
 	void lock();
 	void unlock();
-	bool check(std::string& line);
+	bool check(const std::string& line);
 	void reset();
 
 	void slowReleaseRun();

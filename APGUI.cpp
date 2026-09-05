@@ -318,6 +318,8 @@ namespace APGUI
                 ImGui::SameLine();
                 ImGui::Text("%d/%d recv/seed", APClient::recvIDs.size(), APClient::seedIDs.size());
 
+                ImGui::Text("AP_ID_FACTOR: %i", AP_ID_FACTOR);
+
                 APLogger::ImGuiTab();
             }
         }

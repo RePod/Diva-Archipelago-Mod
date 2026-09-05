@@ -116,7 +116,7 @@ namespace APHints
             // TODO: ID Remaps
             auto itemID = location_name_to_id[recvHint.location] / AP_ID_FACTOR;
 
-            if (std::find(HintedIDs.begin(), HintedIDs.end(), itemID) == HintedIDs.end())
+            if (std::ranges::find(HintedIDs, itemID) == HintedIDs.end())
                 HintedIDs.push_back(itemID);
         }
 
@@ -280,7 +280,7 @@ namespace APHints
                 auto locID = location_name_to_id[hint.location.c_str()];
                 auto itemName = item_ap_id_to_name[(locID / AP_ID_FACTOR) * AP_ID_FACTOR];
 
-                bool haveItem = isMyCheck && std::find(recvIDs.begin(), recvIDs.end(), locID / AP_ID_FACTOR) != recvIDs.end();
+                bool haveItem = isMyCheck && std::ranges::find(recvIDs, locID / AP_ID_FACTOR) != recvIDs.end();
 
                 ImGui::TableNextRow();
 
