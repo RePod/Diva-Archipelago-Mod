@@ -178,18 +178,23 @@ namespace APTraps
 		return 0;
 	}
 
+	void resetGlyph()
+	{
+		if (savedGlyph == 39) return;
+		APLogger::print("Traps: Icon glyph restored to %i\n", savedGlyph);
+		WRITE_MEMORY(PvControllerGlyphBase, int, savedGlyph);
+		savedGlyph = 39;
+	}
+
 	void resetIcon()
 	{
-		if (savedIcon == 39)
-			return;
+		if (savedIcon == 39) return;
 
 		int restoredIcon = ((savedIcon <= 12 && savedIcon >= 0) ? savedIcon : 4);
+		APLogger::print("Traps: Icons restored to %i\n", restoredIcon);
 		WRITE_MEMORY(getIconAddress(), int, restoredIcon);
-		if (savedGlyph != 39)
-			WRITE_MEMORY(PvControllerGlyphBase, int, savedGlyph);
-		APLogger::print("Traps: Icons restored to %i (%i)\n", restoredIcon, savedGlyph);
+		resetGlyph();
 		savedIcon = 39;
-		savedGlyph = 39;
 	}
 
 	float getGameTime()
@@ -496,7 +501,8 @@ namespace APTraps
 		ImGui::Checkbox("Icon Trap: Alternate arrow colors", &alternateArrows);
 		ImGui::SameLine();
 		HelpMarker("When not using random glyphs, allow colored arrows for other controllers.");
-		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
+		if (ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs))
+			if (!randomizeGlyphs) resetGlyph();
 
 		ImGui::Separator();
 
