@@ -17,7 +17,7 @@ HOOK(bool, __fastcall, _InputEverythingElse, InputEverythingElse, long long a1, 
 
 // 0x1402AAF80
 void* InputAcceptBack = sigScan("\x4c\x63\xc2\x49\x81\xf8\xa2\x00\x00\x00\x73\x19", "xxxxxxxxxxxx");
-HOOK(bool, __fastcall, _InputAcceptBack, 0x1402AAF80, long long a1, int btn)
+HOOK(bool, __fastcall, _InputAcceptBack, InputAcceptBack, long long a1, int btn)
 {
     return ImGui::GetIO().WantCaptureKeyboard ? false : original_InputAcceptBack(a1, btn);
 }
