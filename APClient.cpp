@@ -111,7 +111,6 @@ namespace APClient
 
     void SlotData_LocWin(int locWinCount)
     {
-        APLogger::print("locWin %i\n", locWinCount);
         locNeed = locWinCount;
     }
 
