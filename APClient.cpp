@@ -290,7 +290,7 @@ namespace APClient
 
     void UpdateMissing()
     {
-        if (victoryID >= AP_ID_FACTOR && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && locHave >= locNeed))
+        if (victoryID >= AP_ID_FACTOR && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && max(locHave, CheckedLocations.size()) >= locNeed))
             PushRecvID(victoryID / AP_ID_FACTOR);
 
         // TODO: Works from a copy to preserve receive order for the Tracker.
