@@ -50,6 +50,7 @@ namespace APTraps
 		{ "Gadget Shuffle Trap",	{ TrapID::Icon } },
 		{ "Ghost",					{ TrapID::Hidden, TrapID::Sudden } },
 		{ "Hiccup Trap",			{ TrapID::Stutter } },
+		{ "Honey Trap",				{ TrapID::Slow } },
 		{ "Ice Trap",				{ TrapID::Stutter } },
 		{ "Input Sequence Trap",	{ TrapID::Icon } },
 		{ "Invisibility Trap",		{ TrapID::Hidden } },
