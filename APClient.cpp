@@ -221,6 +221,8 @@ namespace APClient
         CheckedLocations.push_back(locationID);
         UpdateMissing();
         APIDHandler::refreshTracker();
+        // TODO: UpdateMissing's goal check relies on locHave which is managed by the tracker
+        UpdateMissing();
     }
 
     void connect()
@@ -290,7 +292,7 @@ namespace APClient
 
     void UpdateMissing()
     {
-        if (victoryID >= AP_ID_FACTOR && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && max(locHave, CheckedLocations.size()) >= locNeed))
+        if (victoryID >= AP_ID_FACTOR && (leekNeed > 0 && leekHave >= leekNeed) || (locNeed > 0 && locHave >= locNeed))
             PushRecvID(victoryID / AP_ID_FACTOR);
 
         // TODO: Works from a copy to preserve receive order for the Tracker.
