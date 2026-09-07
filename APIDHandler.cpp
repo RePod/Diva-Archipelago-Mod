@@ -165,7 +165,7 @@ namespace APIDHandler
 			TrackerItems.push_back(it);
 		}
 
-		int64_t totalLocs = (seedIDs.size() - 1) * 2;
+		int64_t totalLocs = seedIDs.empty() ? 0 : (seedIDs.size() - 1) * 2;
 		int64_t foundLocs = min(static_cast<int64_t>(CheckedLocations.size()), totalLocs);
 		APClient::locHave = static_cast<int>(foundLocs);
 
