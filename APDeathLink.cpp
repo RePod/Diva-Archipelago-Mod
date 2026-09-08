@@ -1,5 +1,6 @@
 #include "APClient.h"
 #include "APDeathLink.h"
+#include "APGUI.h"
 
 namespace APDeathLink
 {
@@ -7,6 +8,7 @@ namespace APDeathLink
 
     // Config options
     bool death_link = false; // In-game state, not APCpp. Connection should always have the DeathLink tag from APCpp.
+    bool death_link_retry = false; // If a DL would kill, instantly retry.
     bool death_link_self = false; // Specifically for co-op play, if slot can kill itself.
     int death_link_amnesty = 0; // Pair with death_link_amnesty_count
     int death_link_percent = 100; // Percentage of max HP to lose on receive. "If at or below this, die."
@@ -20,6 +22,16 @@ namespace APDeathLink
     // Internal
     int death_link_amnesty_count = 0;
     bool deathLinked = false; // true after calling a kill so future kills are ignored (until reset)
+
+    bool resetQueued = false; // True: the next time Death Link checks run, reset the song.
+
+    void* _PvReset = sigScan("\x48\x89\x5c\x24\x10\x48\x89\x74\x24\x18\x55\x57\x41\x54\x41\x56\x41\x57\x48\x8b\xec\x48\x81\xec\x80\x00\x00\x00\x0f\x29\x74\x24\x70\x48\x8b\x05\x50\x8c\xb5\x00\x48\x33\xc4\x48\x89\x45\xe0\x48\x8b\xf9",
+                            "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+    // A very hookable function (NC, ModifiersAPI, ...) but we just want to call it.
+    // Avoid calling directly as a result of networking (bounce handling): easy crashes!
+    // Set resetQueued instead to call the next time Death Link runs.
+    auto PvReset = reinterpret_cast<void(__fastcall*)(uint64_t)>(_PvReset);
 
     float lastDeathLink = 0.0f; // Compared against APDeathLink::death_link_safety
     float lastCheckedHP = 0.0f; // HP: For delta time against APDeathLink::DivaGameTimer
@@ -210,6 +222,11 @@ namespace APDeathLink
         deathLinked = true;
     }
 
+    void resetSong()
+    {
+        PvReset(PvPlayData);
+    }
+
     void run(bool received)
     {
         auto now = *(float*)DivaGameTimer;
@@ -218,6 +235,12 @@ namespace APDeathLink
         // prevents No Fail -> DL to 0 HP -> Return to song select instead of results -> Play
         if (now == 0.0f) {
             reset();
+            resetQueued = false;
+            return;
+        }
+
+        if (resetQueued) {
+            resetSong();
             return;
         }
 
@@ -259,7 +282,7 @@ namespace APDeathLink
         if (death_link_percent == 100)
             toHP = 0; // for prog HP and other exceptions. 100% is DEAD.
 
-        deathLinked = (toHP > 0) ? false : true;
+        deathLinked = toHP <= 0;
 
         APLogger::print("[%6.2f] DeathLink < death_link_in (%i - %i = %i / DL: %i)\n",
             now, currentHP, hit, toHP, deathLinked);
@@ -270,6 +293,13 @@ namespace APDeathLink
 
     void setHP(int HP)
     {
+        HP = std::clamp(HP, 0, 255);
+
+        if (death_link_retry && HP == 0 && APGUI::isInGame()) {
+            resetQueued = true;
+            return;
+        }
+
         WRITE_MEMORY(DivaGameHP, int, HP);
     }
 
@@ -312,6 +342,10 @@ namespace APDeathLink
         HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
 
         if (death_link) {
+            ImGui::Checkbox("Instant retry", &death_link_retry);
+            ImGui::SameLine();
+            HelpMarker("If an incoming Death Link would kill, retry the song instantly instead of failing normally.");
+
             if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20)) {
                 death_link_amnesty = max(0, death_link_amnesty);
                 death_link_amnesty_count = death_link_amnesty;
