@@ -8,11 +8,12 @@ namespace APDeathLink
 
     // Config options
     bool death_link = false; // In-game state, not APCpp. Connection should always have the DeathLink tag from APCpp.
-    bool death_link_retry = false; // If a DL would kill, instantly retry.
     bool death_link_self = false; // Specifically for co-op play, if slot can kill itself.
     int death_link_amnesty = 0; // Pair with death_link_amnesty_count
     int death_link_percent = 100; // Percentage of max HP to lose on receive. "If at or below this, die."
     float death_link_safety = 10.0f; // Seconds after receiving a DL to avoid chain reaction DLs.
+    bool auto_retry = false; // True: queue a song reset if a DL would kill
+
     std::vector<std::string> death_link_tags = { "DeathLink" }; // Potential for DL Groups
 
     const uint64_t DivaGameHP = PvPlayData + 0x2D234;
@@ -57,21 +58,21 @@ namespace APDeathLink
         death_link = section["enabled"].value_or(false);
         APLogger::print("death_link enabled set to %i\n", death_link);
 
-        int config_death_link_amnesty = section["amnesty"].value_or(0);
-        death_link_amnesty = std::clamp(config_death_link_amnesty, 0, 20);
+        death_link_amnesty = std::clamp(section["amnesty"].value_or(death_link_amnesty), 0, 20);
         death_link_amnesty_count = death_link_amnesty;
-        APLogger::print("death_link amnesty set to %d (config: %d)\n", death_link_amnesty, config_death_link_amnesty);
+        APLogger::print("death_link amnesty set to %i\n", death_link_amnesty);
 
-        int config_percent = section["percent"].value_or(death_link_percent);
-        death_link_percent = std::clamp(config_percent, 0, 100);
-        APLogger::print("death_link percent set to %d (config: %d)\n", death_link_percent, config_percent);
+        death_link_percent = std::clamp(section["percent"].value_or(death_link_percent), 0, 100);
+        APLogger::print("death_link percent set to %i\n", death_link_percent);
 
-        float config_safety = section["safety"].value_or(death_link_safety);
-        death_link_safety = std::clamp(config_safety, 0.0f, 30.0f);
-        APLogger::print("death_link safety set to %.02f (config: %.02f)\n", death_link_safety, config_safety);
+        death_link_safety = std::clamp(section["safety"].value_or(death_link_safety), 0.0f, 30.0f);
+        APLogger::print("death_link safety set to %.02f\n", death_link_safety);
 
         death_link_self = section["kill_self"].value_or(false);
         APLogger::print("death_link kill_self set to %i\n", death_link_self);
+
+        auto_retry = section["auto_retry"].value_or(auto_retry);
+        APLogger::print("death_link auto_retry set to %i\n", auto_retry);
 
         reset();
     }
@@ -84,6 +85,7 @@ namespace APDeathLink
         config.insert("percent", death_link_percent);
         config.insert("safety", death_link_safety);
         config.insert("kill_self", death_link_self);
+        config.insert("auto_retry", auto_retry);
 
         settings.insert("death_link", config);
     }
@@ -295,7 +297,7 @@ namespace APDeathLink
     {
         HP = std::clamp(HP, 0, 255);
 
-        if (death_link_retry && HP == 0 && APGUI::isInGame()) {
+        if (death_link && auto_retry && HP == 0 && APGUI::isInGame()) {
             resetQueued = true;
             return;
         }
@@ -342,9 +344,9 @@ namespace APDeathLink
         HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
 
         if (death_link) {
-            ImGui::Checkbox("Instant retry", &death_link_retry);
+            ImGui::Checkbox("Automatic retry", &auto_retry);
             ImGui::SameLine();
-            HelpMarker("If an incoming Death Link would kill, retry the song instantly instead of failing normally.");
+            HelpMarker("If an incoming Death Link would kill, automatically retry the song.");
 
             if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20)) {
                 death_link_amnesty = max(0, death_link_amnesty);
