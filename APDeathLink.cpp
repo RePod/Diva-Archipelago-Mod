@@ -329,9 +329,11 @@ namespace APDeathLink
             ImGui::SameLine();
             HelpMarker("Percent of max HP to lose on receive.\n<100 for non-lethal, but makes Life Bonuses harder which may affect score by up to 2%.");
 
-            ImGui::SliderFloat("Death Link Safety", &death_link_safety, 0.0f, 30.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine();
-            HelpMarker("Seconds after receiving where dying does not send one out.");
+            if (death_link_percent < 100) {
+                ImGui::SliderFloat("Death Link Safety", &death_link_safety, 5.0f, 30.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
+                ImGui::SameLine();
+                HelpMarker("Seconds after receiving where dying does not send one out.");
+            }
 
             ImGui::Checkbox("Same slot deaths", &death_link_self);
             ImGui::SameLine();
