@@ -334,11 +334,7 @@ namespace APTraps
 
 	void runPSP()
 	{
-		if (!isPSP) {
-			trapDuration = 60.0f;
-			touchPSP();
-			return;
-		}
+		if (!isPSP) return;
 
 		if (APGUI::isInGame()) {
 			adjustViewport(nullptr, targetWidth, (float)prevRes.height / ((float)prevRes.width / (float)targetWidth), nullptr);
@@ -416,16 +412,19 @@ namespace APTraps
 		if (now == 0.0f && lastRun > 0.0f) {
 			lastRun = 0.0f;
 			reset();
+
+			trapDuration = 30.0f;
+			touchPSP();
 			return;
 		}
 
 		if (now - lastRun < 0.1f)
 			return;
 
+		lastRun = now;
+
 		runSlow();
 		runPSP();
-
-		lastRun = now;
 
 		if (isSudden && now >= timestampSudden) {
 			APLogger::print("[%6.2f] Trap > Sudden expired\n", now);
