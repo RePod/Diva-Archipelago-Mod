@@ -1,6 +1,7 @@
 #include "APClient.h"
 #include "APTraps.h"
 #include "APGUI.h"
+#include <deque>
 
 namespace APTraps
 {
@@ -11,9 +12,12 @@ namespace APTraps
 	float trapDuration = 15.0f;
 	float iconInterval = 60.0f;
 	bool trapOverlap = false;
+	bool trapExtendDuration = false; // True: Extend existing trap durations instead of overwriting. NEVER EXTEND STUTTER!
 	bool randomizeGlyphs = false;
 	bool alternateArrows = true;
 	int slowTarget = 30;
+	bool queueTraps = false;
+	float queueTrapRate = 0.0f; // +: Wait between traps, 0: apply after previous, -: Wait and overlap
 
 	bool trap_link = false; // Is Trap Link enabled?
 	bool trap_link_others = false; // Handle known traps from other games?
@@ -21,11 +25,12 @@ namespace APTraps
 
 	// Traps native to this game. Should map 1:1 with TrapID.
 	std::unordered_map<std::string, std::vector<TrapID>> trapMap = {
-		{ "Sudden Trap", { TrapID::Sudden } },
-		{ "Hidden Trap", { TrapID::Hidden } },
-		{ "Stutter Trap", { TrapID::Stutter } },
-		{ "Icon Trap", { TrapID::Icon } },
-		{ "Slow Trap", { TrapID::Slow } },
+		{ "Sudden Trap",	{ TrapID::Sudden } },
+		{ "Hidden Trap",	{ TrapID::Hidden } },
+		{ "Stutter Trap",	{ TrapID::Stutter } },
+		{ "Icon Trap",		{ TrapID::Icon } },
+		{ "Slow Trap",		{ TrapID::Slow } },
+		//{ "PSP Trap",		{ TrapID::PSP } }
 	};
 
 	// Known traps from other games, when trap_link_others is true
@@ -75,25 +80,31 @@ namespace APTraps
 
 	// Internal
 
-	int savedIcon = 39;
-	int savedGlyph = 39;
+	int savedIcon = 39; // If randomizeGlyphs: also used to restore glyphs
 	bool isSudden = false; // Had trouble with this as a bool(timestamp > 0)
 	bool isHidden = false; // Had trouble with this as a bool(timestamp > 0)
+	bool isIcon = false;
 	bool isStutter = false;
 	bool isSlow = false;
+	bool isPSP = false;
 	int stutterTarget = 10; // FPS that Stutter drops to briefly. Too low can get the trap "stuck" on for longer than intended.
-	int prevFramerate = 0; // Target framerate before Stutter or Slow overwrite it.
+	int prevFramerate = 0; // Target framerate before Stutter or Slow overwrite it. The game applies 0 as "uncapped", then considers vsync.
+	Resolution prevRes;
 
-	float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
-	float timestampSudden = 0.0f;
-	float timestampHidden = 0.0f;
-	float timestampIconStart = 0.0f;
-	float timestampIconLast = 0.0f;
-	float timestampStutter = 0.0f;
-	float timestampSlow = 0.0f;
+	std::deque<TrapID> trapQueue; // TODO
+
+	float timestampSudden = 0.0f; // Time the trap expires
+	float timestampHidden = 0.0f; // Time the trap expires
+	float timestampIcon = 0.0f; // Time the trap expires
+	float timestampIconNext = 0.0f; // Time the icon should be rolled again
+	float timestampStutter = 0.0f; // Time the trap expires
+	float timestampSlow = 0.0f; // Time the trap expires
+	float timestampPSP = 0.0f;
 
 	std::mt19937 mt;
 	std::uniform_int_distribution<int> dist(0, 12); // 0-3 PS, 4 Arrows, 5-8 NSW, 9-12 X
+
+	auto adjustViewport = reinterpret_cast<void(__fastcall*)(void* p1, int width, int height, void* p4)>(0x1402C27E0);
 
 	void config(const toml::table& settings)
 	{
@@ -101,31 +112,37 @@ namespace APTraps
 		if (settings.contains("traps") && settings["traps"].is_table())
 			section = *settings["traps"].as_table();
 
-		float config_duration = section["duration"].value_or(trapDuration);
-		trapDuration = std::clamp(config_duration, 0.0f, 300.0f);
-		APLogger::print("trap duration: %.02f (config: %.02f)\n", trapDuration, config_duration);
+		trapDuration = std::clamp(section["duration"].value_or(trapDuration), 0.0f, 300.f);
+		APLogger::print("trap duration: %.02f\n", trapDuration);
 
-		float config_iconinterval = section["icon_interval"].value_or(iconInterval);
-		iconInterval = std::clamp(config_iconinterval, 0.0f, 60.0f);
-		APLogger::print("trap icon_interval: %.02f (config: %.02f)\n", iconInterval, config_iconinterval);
+		trapExtendDuration = section["duration_extend"].value_or(trapExtendDuration);
+		APLogger::print("trap extend duration: %i\n", trapExtendDuration);
 
-		int config_slow_target = section["slow_target"].value_or(slowTarget);
-		slowTarget = std::clamp(config_slow_target, 15, 60);
-		APLogger::print("slow_target: %i (config: %i)\n", slowTarget, config_slow_target);
+		iconInterval = std::clamp(section["icon_interval"].value_or(iconInterval), 0.0f, 60.0f);
+		APLogger::print("trap icon_interval: %.02f\n", iconInterval);
 
-		trapOverlap = section["overlap"].value_or(false);
+		slowTarget = std::clamp(section["slow_target"].value_or(slowTarget), 15, 60);
+		APLogger::print("slow_target: %i\n", slowTarget);
+
+		trapOverlap = section["overlap"].value_or(trapOverlap);
 		APLogger::print("trap overlap: %d\n", trapOverlap);
+
+		queueTraps = section["queue"].value_or(queueTraps);
+		APLogger::print("trap queue: %d\n", queueTraps);
+
+		queueTrapRate = std::clamp(section["queue_rate"].value_or(queueTrapRate), -30.0f, 30.0f);
+		APLogger::print("trap icon_interval: %.02f\n", queueTrapRate);
 
 		trap_link = section["trap_link"].value_or(false);
 		APLogger::print("trap_link: %d\n", trap_link);
 
-		trap_link_others = section["trap_link_others"].value_or(false);
+		trap_link_others = section["trap_link_others"].value_or(trap_link_others);
 		APLogger::print("trap_link_others: %d\n", trap_link_others);
 
-		randomizeGlyphs = section["icon_glyphs"].value_or(false);
+		randomizeGlyphs = section["icon_glyphs"].value_or(randomizeGlyphs);
 		APLogger::print("trap icon_glyphs: %d\n", randomizeGlyphs);
 
-		alternateArrows = section["icon_arrow_colors"].value_or(true);
+		alternateArrows = section["icon_arrow_colors"].value_or(alternateArrows);
 		APLogger::print("trap icon_arrow_colors: %d\n", alternateArrows);
 	}
 
@@ -133,13 +150,17 @@ namespace APTraps
 	{
 		toml::table config;
 		config.insert("duration", trapDuration);
+		config.insert("duration_extend", trapExtendDuration);
 		config.insert("icon_interval", iconInterval);
 		config.insert("icon_glyphs", randomizeGlyphs);
 		config.insert("icon_arrow_colors", alternateArrows);
-		config.insert("overlap", trapOverlap);
 		config.insert("slow_target", slowTarget);
+		config.insert("overlap", trapOverlap);
 		config.insert("trap_link", trap_link);
 		config.insert("trap_link_others", trap_link_others);
+		config.insert("queue", queueTraps);
+		config.insert("queue_rate", queueTrapRate);
+
 
 		settings.insert("traps", config);
 	}
@@ -163,28 +184,24 @@ namespace APTraps
 		resetIcon();
 		timestampSudden = 0.0f;
 		timestampHidden = 0.0f;
-		timestampIconStart = 0.0f;
-		timestampIconLast = 0.0f;
+		timestampIcon = 0.0f;
+		timestampIconNext = 0.0f;
 		timestampStutter = 0.0;
 		timestampSlow = 0.0f;
+		timestampPSP = 0.0f;
 		isHidden = false;
 		isSudden = false;
 		isStutter = false;
 		isSlow = false;
+		isPSP = false;
+
+		if (prevRes.width > 0)
+			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
+		prevRes.clear();
 
 		resetFramerate();
 
-		lastRun = 0.0f;
-
 		return 0;
-	}
-
-	void resetGlyph()
-	{
-		if (savedGlyph == 39) return;
-		APLogger::print("Traps: Icon glyph restored to %i\n", savedGlyph);
-		WRITE_MEMORY(PvControllerGlyphBase, int, savedGlyph);
-		savedGlyph = 39;
 	}
 
 	void resetIcon()
@@ -194,13 +211,34 @@ namespace APTraps
 		int restoredIcon = ((savedIcon <= 12 && savedIcon >= 0) ? savedIcon : 4);
 		APLogger::print("Traps: Icons restored to %i\n", restoredIcon);
 		WRITE_MEMORY(getIconAddress(), int, restoredIcon);
-		resetGlyph();
+		WRITE_MEMORY(PvControllerGlyphBase, int, restoredIcon);
 		savedIcon = 39;
 	}
 
 	float getGameTime()
 	{
 		return *(float*)DivaGameTimer;
+	}
+
+	float getSongLength()
+	{
+		return *(float*)(PvPlayData + 0x2D338);
+	}
+
+	float getTrapEndTime(float& timestampTrap)
+	{
+		if (trapDuration == 0.0f)
+			return getSongLength();
+
+		auto now = getGameTime();
+		return (trapExtendDuration && timestampTrap > 0.0f ? timestampTrap : now) + trapDuration;
+	}
+
+	void menuOpened()
+	{
+		static bool inGame = APGUI::isInGame();
+
+		//runPSP();
 	}
 
 	void touchSudden()
@@ -211,16 +249,15 @@ namespace APTraps
 	void touchSudden(bool force)
 	{
 		float now = getGameTime();
-		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
+		timestampSudden = getTrapEndTime(timestampSudden);
 
-		APLogger::print("[%6.2f] Trap < Sudden (expires: %.2f)\n", now, expires);
-		timestampSudden = now;
+		APLogger::print("[%6.2f] Trap < Sudden (expires: %.2f)\n", now, timestampSudden);
 		isSudden = true;
 
 		bool overlap = force || trapOverlap;
 
 		if (!overlap && isHidden) {
-			APLogger::print("[%6.2f] Trap < Hidden -> Sudden (expires: %.2f)\n", now, expires);
+			APLogger::print("[%6.2f] Trap < Hidden -> Sudden (expires: %.2f)\n", now, timestampSudden);
 			timestampHidden = 0.0f;
 			isHidden = false;
 		}
@@ -234,16 +271,15 @@ namespace APTraps
 	void touchHidden(bool force)
 	{
 		float now = getGameTime();
-		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
+		timestampHidden = getTrapEndTime(timestampHidden);
 
-		APLogger::print("[%6.2f] Trap < Hidden (expires: %.2f)\n", now, expires);
-		timestampHidden = now;
+		APLogger::print("[%6.2f] Trap < Hidden (expires: %.2f)\n", now, timestampHidden);
 		isHidden = true;
 
 		bool overlap = force || trapOverlap;
 
 		if (!overlap && isSudden) {
-			APLogger::print("[%6.2f] Trap < Sudden -> Hidden (expires: %.2f)\n", now, expires);
+			APLogger::print("[%6.2f] Trap < Sudden -> Hidden (expires: %.2f)\n", now, timestampHidden);
 			timestampSudden = 0.0f;
 			isSudden = false;
 		}
@@ -255,32 +291,61 @@ namespace APTraps
 		APLogger::print("[%6.2f] Trap < Stutter\n", now);
 
 		isStutter = true;
+		// NEVER extend duration. Easy DoS.
 		timestampStutter = now + 0.5f;
 	}
 
 	void touchIcon()
 	{
 		float now = getGameTime();
-		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
+		timestampIcon = getTrapEndTime(timestampIcon);
 
 		resetIcon();
 
-		APLogger::print("[%6.2f] Trap < Icon (expires: %.2f)\n", now, expires);
-		timestampIconStart = now;
+		APLogger::print("[%6.2f] Trap < Icon (expires: %.2f)\n", now, timestampIcon);
 		rollIcon();
+		isIcon = true;
 
-		if (timestampIconStart == now)
+		if (timestampIcon == now)
 			return;
 	}
 
 	void touchSlow()
 	{
 		float now = getGameTime();
-		float expires = (trapDuration > 0.0f) ? now + trapDuration : 0.0f;
+		timestampSlow = getTrapEndTime(timestampSlow);
 
-		APLogger::print("[%6.2f] Trap < Slow (expires: %.2f)\n", now, expires);
-		timestampSlow = now;
+		APLogger::print("[%6.2f] Trap < Slow (expires: %.2f)\n", now, timestampSlow);
 		isSlow = true;
+	}
+
+	void touchPSP()
+	{
+		float now = getGameTime();
+		timestampPSP = getTrapEndTime(timestampPSP);
+
+		prevRes.update();
+
+		APLogger::print("[%6.2f] Trap < PSP (expires: %.2f, %i x %i)\n", now, timestampPSP, prevRes.width, prevRes.height);
+		isPSP = true;
+	}
+
+	int targetWidth = 480;
+
+	void runPSP()
+	{
+		if (!isPSP) {
+			trapDuration = 60.0f;
+			touchPSP();
+			return;
+		}
+
+		if (APGUI::isInGame()) {
+			adjustViewport(nullptr, targetWidth, (float)prevRes.height / ((float)prevRes.width / (float)targetWidth), nullptr);
+		}
+		else {
+			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
+		}
 	}
 
 	void linkSend(const std::string& trapName)
@@ -338,11 +403,18 @@ namespace APTraps
 		}
 	}
 
+	void runQueue()
+	{
+		float now = getGameTime();
+	}
+
 	void run()
 	{
 		float now = getGameTime();
+		static float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
 
 		if (now == 0.0f && lastRun > 0.0f) {
+			lastRun = 0.0f;
 			reset();
 			return;
 		}
@@ -351,40 +423,42 @@ namespace APTraps
 			return;
 
 		runSlow();
+		runPSP();
 
 		lastRun = now;
 
-		if (isSudden) {
-			auto deltaSudden = now - timestampSudden;
-			if (trapDuration > 0.0f && deltaSudden >= trapDuration) {
-				APLogger::print("[%6.2f] Trap > Sudden expired\n", now);
-				timestampSudden = 0.0f;
-				isSudden = false;
-			}
+		if (isSudden && now >= timestampSudden) {
+			APLogger::print("[%6.2f] Trap > Sudden expired\n", now);
+			timestampSudden = 0.0f;
+			isSudden = false;
 		}
 
-		if (isHidden) {
-			auto deltaHidden = now - timestampHidden;
-			if (trapDuration > 0.0f && deltaHidden >= trapDuration) {
-				APLogger::print("[%6.2f] Trap > Hidden expired\n", now);
-				timestampHidden = 0.0f;
-				isHidden = false;
-			}
+		if (isHidden && now >= timestampHidden) {
+			APLogger::print("[%6.2f] Trap > Hidden expired\n", now);
+			timestampHidden = 0.0f;
+			isHidden = false;
 		}
 
-		if (savedIcon <= 12) {
-			float deltaStart = now - timestampIconStart;
-			float deltaLast = now - timestampIconLast;
-			if (trapDuration == 0.0f || deltaStart < trapDuration) {
-				if (iconInterval > 0.0f && deltaLast >= iconInterval) {
-					timestampIconLast = now;
+		if (isIcon) {
+			if (now >= timestampIcon) {
+				APLogger::print("[%6.2f] Trap > Icon expired\n", now);
+				timestampIcon = 0.0f;
+				isIcon = false;
+				resetIcon();
+			}
+			else {
+				if (now >= timestampIconNext && iconInterval > 0.0f) {
+					timestampIconNext = now + iconInterval;
 					rollIcon();
 				}
 			}
-			else if (trapDuration > 0.0f) {
-				APLogger::print("[%6.2f] Trap > Icon expired\n", now);
-				resetIcon();
-			}
+		}
+
+		if (isPSP && now >= timestampPSP) {
+			APLogger::print("[%6.2f] Trap > PSP expired\n", now);
+			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
+			timestampPSP = 0.0f;
+			isPSP = false;
 		}
 	}
 
@@ -396,7 +470,7 @@ namespace APTraps
 			int target = 60;
 
 			if (isStutter) {
-				if (now > timestampStutter) {
+				if (now >= timestampStutter) {
 					APLogger::print("[%6.2f] Trap > Stutter expired\n", now);
 					timestampStutter = 0.0f;
 					isStutter = false;
@@ -407,8 +481,7 @@ namespace APTraps
 
 				target = stutterTarget;
 			} else if (isSlow) {
-				auto deltaSlow = now - timestampSlow;
-				if (trapDuration > 0.0f && deltaSlow >= trapDuration) {
+				if (now >= timestampSlow) {
 					APLogger::print("[%6.2f] Trap > Slow expired\n", now);
 					timestampSlow = 0.0f;
 					isSlow = false;
@@ -446,6 +519,8 @@ namespace APTraps
 
 	void rollIcon()
 	{
+		if (!APGUI::isInGame()) return;
+
 		int currentIcon = getCurrentIcon();
 		int nextIcon = currentIcon;
 
@@ -453,7 +528,6 @@ namespace APTraps
 			savedIcon = currentIcon;
 
 		while (currentIcon == nextIcon) {
-
 			nextIcon = dist(mt);
 
 			if (!alternateArrows) {
@@ -471,8 +545,6 @@ namespace APTraps
 		WRITE_MEMORY(getIconAddress(), int, nextIcon);
 
 		if (randomizeGlyphs) {
-			if (savedGlyph == 39)
-				savedGlyph = *(int*)PvControllerGlyphBase;
 			int out = dist(mt);
 			WRITE_MEMORY(PvControllerGlyphBase, int, out);
 		}
@@ -481,40 +553,49 @@ namespace APTraps
 	void ImGuiTab()
 	{
 		char buf[32];
-		float songLength = *(float*)(PvPlayData + 0x2D338);
-		sprintf(buf, "%.03f / %.03f", getGameTime(), songLength);
-		ImGui::ProgressBar(getGameTime() / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
+		float songLength = getSongLength();
+		float now = getGameTime();
+		sprintf(buf, "%.03f / %.03f", now, songLength);
+		ImGui::ProgressBar(now / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
 
 		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
-		ImGui::SameLine();
 		HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
 
+		if (trapDuration > 0.0f) {
+			ImGui::Checkbox("Extend trap durations", &trapExtendDuration);
+			HelpMarker("Receiving a trap that's already running adds to its duration instead of overwriting it.");
+		}
+
 		ImGui::SliderFloat("Icon Reroll", &iconInterval, 0.0f, 60.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
-		ImGui::SameLine();
 		HelpMarker("Seconds between icon rerolls while Icon trap is active.\n0 to only reroll once.");
 
 		if (ImGui::SliderInt("Slow FPS", &slowTarget, 20, 40))
 			slowTarget = std::clamp(slowTarget, 15, 60);
-		ImGui::SameLine();
-		HelpMarker("Chain Slides may have issues below 30 FPS, based on BPM.");
+		HelpMarker("Chain Slides may have issues below 30 FPS, based on speed.");
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
 		ImGui::Checkbox("Icon Trap: Alternate arrow colors", &alternateArrows);
-		ImGui::SameLine();
 		HelpMarker("When not using random glyphs, allow colored arrows for other controllers.");
-		if (ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs))
-			if (!randomizeGlyphs) resetGlyph();
+		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
+
+		ImGui::Separator();
+
+		ImGui::Checkbox("Queue Traps", &queueTraps);
+		HelpMarker("Instead of applying traps immediately, queue them.\nTrap Link still skips the queue.");
+
+		if (queueTraps) {
+			ImGui::SliderFloat("Queue rate", &queueTrapRate, -30.0f, 30.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
+			HelpMarker("+ Wait between traps\n0 No wait between traps\n- Wait between traps, but overlap");
+		}
 
 		ImGui::Separator();
 
 		if (ImGui::Checkbox("Trap Link", &trap_link))
 			APClient::UpdateTags();
-		ImGui::SameLine();
 		HelpMarker("Share traps with other Trap Link players.\nLinked traps will only apply during play instead of queuing up.\nNote: Traps of the same name from other games will apply regardless of the following option.");
 
 		if (trap_link) {
 			ImGui::Checkbox("Traps from other games", &trap_link_others);
-			ImGui::SameLine();
 			HelpMarker("Handle known traps of a similar effect from other games.\nExample: Ice Trap = Stutter Trap");
 			ImGui::SameLine();
 			ImGui::TextLinkOpenURL("(?)", "https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?gid=811965759");
@@ -534,12 +615,17 @@ namespace APTraps
 			ImGui::SameLine();
 			if (ImGui::Button("Icon"))
 				touchIcon();
-			ImGui::SameLine();
+
 			if (ImGui::Button("Stutter"))
 				touchStutter();
 			ImGui::SameLine();
 			if (ImGui::Button("Slow"))
 				touchSlow();
+			ImGui::SameLine();
+			if (ImGui::Button("PSP"))
+				touchPSP();
+
+			ImGui::SliderInt("PSP width", &targetWidth, 160, 480, nullptr, ImGuiSliderFlags_AlwaysClamp);
 
 			if (trap_link) {
 				static char tl[20];
@@ -561,7 +647,7 @@ namespace APTraps
 					ImGui::TableNextColumn();
 					ImGui::Text("Sudden");
 					ImGui::TableNextColumn();
-					ImGui::Text("%.02f", trapDuration + timestampSudden - getGameTime());
+					ImGui::Text("%.02f", timestampSudden - now);
 				}
 
 				if (isHidden)
@@ -570,7 +656,7 @@ namespace APTraps
 					ImGui::TableNextColumn();
 					ImGui::Text("Hidden");
 					ImGui::TableNextColumn();
-					ImGui::Text("%.02f", trapDuration + timestampHidden - getGameTime());
+					ImGui::Text("%.02f", timestampHidden - now);
 				}
 
 				if (isStutter)
@@ -579,7 +665,7 @@ namespace APTraps
 					ImGui::TableNextColumn();
 					ImGui::Text("Stutter");
 					ImGui::TableNextColumn();
-					ImGui::Text("%.02f (%i > %i FPS)", timestampStutter - getGameTime(), prevFramerate, stutterTarget);
+					ImGui::Text("%.02f (%i > %i FPS)", timestampStutter - now, prevFramerate, stutterTarget);
 				}
 
 				if (isSlow)
@@ -588,17 +674,25 @@ namespace APTraps
 					ImGui::TableNextColumn();
 					ImGui::Text("Slow");
 					ImGui::TableNextColumn();
-					ImGui::Text("%.02f (%i > %i FPS)", trapDuration + timestampSlow - getGameTime(), prevFramerate, slowTarget);
+					ImGui::Text("%.02f (%i > %i FPS)", timestampSlow - now, prevFramerate, slowTarget);
 				}
 
-				if (savedIcon <= 12)
+				if (isIcon)
 				{
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					ImGui::Text("Icon");
 					ImGui::TableNextColumn();
-					ImGui::Text("%.02f %i / %i (%i / %i)", trapDuration + timestampIconStart - getGameTime(), getCurrentIcon(),
-								*(int*)(PvControllerGlyphBase), savedIcon, savedGlyph);
+					ImGui::Text("%.02f %i / %i (%i)", timestampIcon - now, getCurrentIcon(), *(int*)(PvControllerGlyphBase), savedIcon);
+				}
+
+				if (isPSP)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("PSP");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.02f %i x %i", timestampPSP - now, prevRes.width, prevRes.height);
 				}
 
 				ImGui::EndTable();

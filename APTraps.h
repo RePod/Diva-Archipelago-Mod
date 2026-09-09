@@ -10,7 +10,8 @@ namespace APTraps
 {
 	enum struct TrapID : int64_t {
 		None = 0,
-		Random = 1, // Client specific Trap ID. Use to roll valid native traps.
+		Random = 1, // TODO: Client specific Trap ID. Use to roll valid native traps.
+		PSP = 29, // Changes actual resolution, flickers, may mess with recording software.
 		// Datapackage's Trap IDs begin at 30. Up to that can be used for whatever.
 		Hidden = 30,
 		Sudden = 31,
@@ -18,6 +19,21 @@ namespace APTraps
 		Slow = 33,
 		Stutter = 34,
 		Icon = 35,
+	};
+
+	struct Resolution {
+		int width = 0; // Original width + X padding * 2
+		int height = 0; // Original height + Y padding * 2
+
+		void clear() {
+			*this = {};
+		}
+
+		void update() {
+			static uintptr_t* res = reinterpret_cast<uint64_t*>(0x141148218);
+			width = *(int*)(*(res)+0x40) + (2 * *(int*)(*(res)+0x48));
+			height = *(int*)(*(res)+0x44) + (2 * *(int*)(*(res)+0x4c));
+		}
 	};
 
 	extern bool isSudden;
@@ -33,6 +49,7 @@ namespace APTraps
 	void run();
 	void runSlow();
 
+	void menuOpened();
 	void touchSudden();
 	void touchSudden(bool force);
 	void touchHidden();
@@ -40,6 +57,7 @@ namespace APTraps
 	void touchStutter();
 	void touchIcon();
 	void touchSlow();
+	void touchPSP();
 	void linkSend(const std::string& trapName);
 	void linkRecv(const std::string& trapName);
 
