@@ -628,7 +628,7 @@ namespace APClient
             else if (locNeed > 0)
                 winCon << locHave << " / " << locNeed << " Checks";
 
-            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize((winCon.str() + " (?) ").c_str()).x);
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize((winCon.str() + (APGUI::inlineTooltips ? " " : " (?) ")).c_str()).x);
             if (ImGui::InputText("##APsay", say, sizeof(say), ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 refocus = true;
