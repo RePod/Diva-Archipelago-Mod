@@ -19,6 +19,8 @@ namespace APGUI
     float alphaDefault = 1.0f;
     float alphaIngame = 1.0f;
 
+    bool inlineTooltips = true; // True: Help tooltips become regular hovers instead of (?)
+
     bool showImGuiDemo = false;
     bool firstFrame = true;
 
@@ -256,23 +258,21 @@ namespace APGUI
         if (ImGui::CollapsingHeader("Styling")) {
             ImGui::Checkbox("Hide during gameplay", &autoHideClient);
             ImGui::Checkbox("Enable docking support", &enableDocking);
-            ImGui::SameLine();
             HelpMarker("Instead of a single window with tabs, spawn each tab as its own window for more customization.");
+
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
+            ImGui::Checkbox("Inline help tooltips", &inlineTooltips);
+            HelpMarker("That's me!");
             ImGui::DragFloat("Font DPI Scale", &ImGui::GetStyle().FontScaleDpi, 0.02f, 0.75f, 4.0f, "%.02f", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine();
             HelpMarker("1.25 recommended for 1440p\n1.75 recommended for 4K");
 
             ImGui::DragFloat("Default Alpha", &alphaDefault, 0.01f, 0.5f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             ImGui::DragFloat("In-game Alpha", &alphaIngame, 0.01f, 0.1f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-
-            ImGui::SameLine();
             HelpMarker("If not hidden during gameplay, lower alpha to this instead.");
         }
 
         if (ImGui::CollapsingHeader("Developer Mode")) {
             ImGui::Checkbox("Enable Developer Mode", &devMode);
-            ImGui::SameLine();
             HelpMarker("Dangerous! For the curious or the stuck.");
 
             if (devMode) {
@@ -309,7 +309,6 @@ namespace APGUI
                     APReload::run();
                 }
 
-                ImGui::SameLine();
                 HelpMarker("Fills the IDHandler with \"random\" IDs up to 10000.\n"
                     "Try toggling Freeplay from the Tracker tab.\n"
                     "Effectively an offline Archipelago."

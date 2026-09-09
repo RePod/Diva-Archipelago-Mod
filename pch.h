@@ -27,6 +27,7 @@
 #include <detours.h>
 #include <Archipelago.h>
 #include "APLogger.h"
+#include "APGUI.h"
 #include "Helpers.h"
 
 using namespace nlohmann;
@@ -44,10 +45,13 @@ inline int AP_ID_FACTOR = 100;
 // TODO: Relocate
 inline void HelpMarker(const char* desc)
 {
-    ImGui::TextDisabled("(?)");
+    if (!APGUI::inlineTooltips) {
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+    }
     if (ImGui::BeginItemTooltip())
     {
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 30.0f);
         ImGui::TextUnformatted(desc);
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();

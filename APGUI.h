@@ -6,6 +6,8 @@
 
 namespace APGUI
 {
+    extern bool inlineTooltips;
+
     extern HWND g_hWnd;
     extern WNDPROC g_OriginalWndProc;
 

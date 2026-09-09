@@ -329,7 +329,6 @@ namespace APDeathLink
             ImGui::SameLine();
             ImGui::Text("Temporary HP: %d+%d", HPreceived, HPtemp);
 
-            ImGui::SameLine();
             HelpMarker("Temporarily increase available chunk count.\nResets when the next one is received.");
 
             if (devMode)
@@ -340,19 +339,16 @@ namespace APDeathLink
 
         if (ImGui::Checkbox("Death Link", &death_link))
             APClient::UpdateTags();
-        ImGui::SameLine();
         HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
 
         if (death_link) {
             ImGui::Checkbox("Automatic retry", &auto_retry);
-            ImGui::SameLine();
             HelpMarker("If an incoming Death Link would kill, automatically retry the song.");
 
             if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20)) {
                 death_link_amnesty = max(0, death_link_amnesty);
                 death_link_amnesty_count = death_link_amnesty;
             }
-            ImGui::SameLine();
             HelpMarker("Amount of additional own deaths needed before sending one Death Link. 0 would be every death, 1 every other, etc.");
 
             if (death_link_amnesty > 0) {
@@ -362,17 +358,14 @@ namespace APDeathLink
             }
 
             ImGui::SliderInt("Death Link Percent", &death_link_percent, 0, 100, "%d%%", ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine();
             HelpMarker("Percent of max HP to lose on receive.\n<100 for non-lethal, but makes Life Bonuses harder which may affect score by up to 2%.");
 
             if (death_link_percent < 100) {
                 ImGui::SliderFloat("Death Link Safety", &death_link_safety, 5.0f, 30.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
-                ImGui::SameLine();
                 HelpMarker("Seconds after receiving where dying does not send one out.");
             }
 
             ImGui::Checkbox("Same slot deaths", &death_link_self);
-            ImGui::SameLine();
             HelpMarker("When playing a slot co-op, react to deaths from the same slot.");
 
             if (devMode)
@@ -403,7 +396,6 @@ namespace APDeathLink
 
                 ImGui::SameLine();
                 ImGui::Text("Linked: %d", deathLinked);
-                ImGui::SameLine();
                 HelpMarker("If 1/true, the cause of the death prevented a Death Link from being sent.\nFor example, dying in one hit or inside the safety window.");
             }
         }

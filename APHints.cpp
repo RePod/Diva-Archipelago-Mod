@@ -216,7 +216,6 @@ namespace APHints
             refreshHints();*/
 
         ImGui::Checkbox("Hide checked", &hintHideChecked);
-        ImGui::SameLine();
         HelpMarker("Non-song items may be out of date until manually refreshed.");
         ImGui::SameLine();
 

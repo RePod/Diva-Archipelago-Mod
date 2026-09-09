@@ -228,7 +228,6 @@ namespace APIDHandler
 
 			if (ImGui::Checkbox("Freeplay", &freeplay))
 				if (!ImGui::GetIO().KeyShift) APReload::run();
-			ImGui::SameLine();
 			HelpMarker("The entire song list will be available except for songs that have not been received yet.\nDeath Link and Traps still apply.\nShift+Click to not reload.");
 
 			ImGui::TableSetColumnIndex(1);
@@ -237,7 +236,6 @@ namespace APIDHandler
 				queuedTrackerSort = true;
 				if (!ImGui::GetIO().KeyShift) APReload::run();
 			}
-			ImGui::SameLine();
 			HelpMarker("When not in Freeplay, the song list will only show songs that have checks.\nShift+Click to not reload.");
 
 			ImGui::EndTable();
@@ -246,13 +244,12 @@ namespace APIDHandler
 		if (APClient::devMode) {
 			if (ImGui::Checkbox("Slow release every", &slowRelease))
 				slowReleaseTouch();
+			HelpMarker("Clears an unchecked song at the given interval.\nSends in listed, sorted order.\nDoes not prioritize hints.");
 			ImGui::SameLine();
 			ImGui::PushItemWidth(min(ImGui::GetContentRegionAvail().x * 0.25f, 80.0f));
 			if (ImGui::SliderInt("seconds", &slowReleaseInterval, 60, 300, "%d"))
 				slowReleaseInterval = max(1, slowReleaseInterval);
 			ImGui::PopItemWidth();
-			ImGui::SameLine();
-			HelpMarker("Clears an unchecked song at the given interval.\nSends in listed, sorted order.\nDoes not prioritize hints.");
 			if (slowRelease) {
 				ImGui::SameLine();
 				ImGui::BeginDisabled();

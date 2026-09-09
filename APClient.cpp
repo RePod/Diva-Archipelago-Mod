@@ -516,7 +516,6 @@ namespace APClient
                 ImGui::MenuItem("Hide server", nullptr, &hideServer);
                 ImGui::EndPopup();
             }
-            ImGui::SameLine();
             HelpMarker(
                 "Server address must have the port number.\nRight-click input to toggle visibility."
                 "\n\nExample addresses:\n archipelago.gg:38281\n localhost:38281\n 127.0.0.1:38281"
@@ -540,11 +539,7 @@ namespace APClient
                         if (ImGui::GetIO().KeyShift)
                             APSettings::save();
                     }
-                    if (ImGui::IsItemHovered()) {
-                        ImGui::BeginTooltip();
-                        ImGui::Text("Shift+Click to save connection information.");
-                        ImGui::EndTooltip();
-                    }
+                    HelpMarker("Shift+Click to save connection information.");
                     if (*state == 0) ImGui::EndDisabled();
                 }
                 else {
@@ -651,7 +646,6 @@ namespace APClient
             std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID] + "\n"
                                     "Clear grade needed: " + (std::string)diffs[clearGrade - 1];
 
-            ImGui::SameLine();
             HelpMarker(goalTip.c_str());
         }
     }

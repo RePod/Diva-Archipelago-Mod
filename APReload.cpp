@@ -124,16 +124,13 @@ namespace APReload
 
             ImGui::SameLine();
             ImGui::Text("Reload key: %s", reloadVal.c_str());
-            ImGui::SameLine();
             HelpMarker("Can only be changed from settings file.");
 
 
             ImGui::SliderInt("Reload delay", &reloadDelay, 1, 10, NULL, ImGuiSliderFlags_AlwaysClamp);
-            ImGui::SameLine();
             HelpMarker("How long to wait for the reload.\nLower is faster but may break.\nBest with DivaModLoader PR #36");
 
             ImGui::Checkbox("Skip main menu", &skipMainMenu);
-            ImGui::SameLine();
             HelpMarker("Skip the main menu after title screen.\nUse with IntroPatch to skip to song select.");
         }
     }
