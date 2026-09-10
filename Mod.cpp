@@ -235,6 +235,7 @@ extern "C"
         APClient::CheckMessages();
         APGUI::onFrame(swapChain);
         APIDHandler::slowReleaseRun();
+        APTraps::runPSP();
 
         if (!ImGui::GetIO().WantCaptureKeyboard)
             APReload::scan();

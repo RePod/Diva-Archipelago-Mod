@@ -23,17 +23,21 @@ namespace APTraps
 	};
 
 	struct Resolution {
-		int width = 0; // Original width + X padding * 2
-		int height = 0; // Original height + Y padding * 2
+		uintptr_t* path = reinterpret_cast<uint64_t*>(0x141148218);
+		int width = 0;
+		int height = 0;
+		int offsetX = 0;
+		int offsetY = 0;
 
 		void clear() {
 			*this = {};
 		}
 
 		void update() {
-			static uintptr_t* res = reinterpret_cast<uint64_t*>(0x141148218);
-			width = *(int*)(*(res)+0x40) + (2 * *(int*)(*(res)+0x48));
-			height = *(int*)(*(res)+0x44) + (2 * *(int*)(*(res)+0x4c));
+			width = *(int*)(*(path)+0x40);
+			height = *(int*)(*(path)+0x44);
+			offsetX = *(int*)(*(path)+0x48);
+			offsetY = *(int*)(*(path)+0x4c);
 		}
 	};
 
@@ -49,6 +53,7 @@ namespace APTraps
 	void resetIcon();
 	void run();
 	void runSlow();
+	void runPSP();
 
 	bool canRecv(const int64_t itemID);
 	void trapRecv(const int64_t itemID, const bool notify);

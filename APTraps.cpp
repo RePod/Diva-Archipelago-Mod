@@ -90,6 +90,8 @@ namespace APTraps
 
 	// Internal
 
+	float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
+
 	int savedIcon = 39; // If randomizeGlyphs: also used to restore glyphs
 	bool isSudden = false; // Had trouble with this as a bool(timestamp > 0)
 	bool isHidden = false; // Had trouble with this as a bool(timestamp > 0)
@@ -175,7 +177,6 @@ namespace APTraps
 		config.insert("queue", queueTraps);
 		config.insert("queue_rate", queueTrapRate);
 
-
 		settings.insert("traps", config);
 	}
 
@@ -192,8 +193,7 @@ namespace APTraps
 	{
 		APLogger::print("Traps: reset\n");
 
-		std::random_device rd;
-		mt.seed(rd());
+		lastRun = 0.0f;
 
 		resetIcon();
 		timestampSudden = 0.0f;
@@ -333,15 +333,20 @@ namespace APTraps
 		isSlow = true;
 	}
 
+	int pspFrame = 0;
+
 	void touchPSP()
 	{
 		float now = getGameTime();
 		timestampPSP = getTrapEndTime(timestampPSP);
 
-		prevRes.update();
+		if (!isPSP)
+			prevRes.update();
 
 		APLogger::print("[%6.2f] Trap < PSP (expires: %.2f, %i x %i)\n", now, timestampPSP, prevRes.width, prevRes.height);
 		isPSP = true;
+
+		pspFrame = 0;
 	}
 
 	void runPSP()
@@ -350,6 +355,12 @@ namespace APTraps
 
 		if (APGUI::isInGame()) {
 			adjustViewport(nullptr, prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
+
+			// Hide for a frame to avoid the more obvious flicker
+			int* offsetLeft = (int*)(*(prevRes.path) + 0x48);
+			*offsetLeft = pspFrame == 0 ? prevRes.width + (2 * prevRes.offsetX) : 0;
+
+			pspFrame += 1;
 		}
 		else {
 			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
@@ -465,10 +476,8 @@ namespace APTraps
 	void run()
 	{
 		float now = getGameTime();
-		static float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
 
 		if (now == 0.0f && lastRun > 0.0f) {
-			lastRun = 0.0f;
 			reset();
 			return;
 		}
@@ -608,7 +617,7 @@ namespace APTraps
 	{
 		float now = getGameTime();
 		float songLength = getSongLength();
-		std::string songProgress = std::format(".03f / .03f", now, songLength);
+		std::string songProgress = std::format("{:.03f} / {:.03f}", now, songLength);
 		ImGui::ProgressBar(now / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), songProgress.c_str());
 
 		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
@@ -629,13 +638,14 @@ namespace APTraps
 		std::string res = std::format("{}x{}", pspHeight * 16 / 9, pspHeight);
 		if (ImGui::SliderInt("PSP resolution", &pspHeight, 90, 270, res.c_str()))
 			pspHeight = std::clamp(pspHeight, 45, 540);
-		HelpMarker("Resolution for the PSP Trap.\n\n\"Frame\" and \"No Frame\" give sharper images while \"Fullscreen\" gives a softer image.");
+		HelpMarker("Resolution for the PSP Trap.\nBlurry? Try a display mode other than \"Fullscreen\".");
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
 		ImGui::Checkbox("Icon Trap: Alternate arrow colors", &alternateArrows);
 		HelpMarker("When not using random glyphs, allow colored arrows for other controllers.");
 		ImGui::Checkbox("Icon Trap: Random controller glyphs", &randomizeGlyphs);
 
+		/*
 		ImGui::Separator();
 
 		ImGui::Checkbox("Queue Traps", &queueTraps);
@@ -645,6 +655,7 @@ namespace APTraps
 			ImGui::SliderFloat("Queue rate", &queueTrapRate, -30.0f, 30.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
 			HelpMarker("+ Wait between traps\n0 No wait between traps\n- Wait between traps, but overlap");
 		}
+		*/
 
 		ImGui::Separator();
 
