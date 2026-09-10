@@ -18,6 +18,7 @@ namespace APTraps
 	int slowTarget = 30;
 	bool queueTraps = false;
 	float queueTrapRate = 0.0f; // +: Wait between traps, 0: apply after previous, -: Wait and overlap
+	int pspHeight = 270; // While isPSP, use this resolution height (scaled to 16:9)
 
 	bool trap_link = false; // Is Trap Link enabled?
 	bool trap_link_others = false; // Handle known traps from other games?
@@ -30,13 +31,15 @@ namespace APTraps
 		{ "Stutter Trap",	{ TrapID::Stutter } },
 		{ "Icon Trap",		{ TrapID::Icon } },
 		{ "Slow Trap",		{ TrapID::Slow } },
-		//{ "PSP Trap",		{ TrapID::PSP } }
+		{ "PSP Trap",		{ TrapID::PSP } }
 	};
 
 	// Known traps from other games, when trap_link_others is true
 	// Hopefully kept updated: https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?usp=sharing
 	std::unordered_map<std::string, std::vector<TrapID>> trapMapExt = {
+		{ "144p Trap",				{ TrapID::PSP } },
 		{ "Bullet Time Trap",		{ TrapID::Slow } },
+		{ "Camera Trap",			{ TrapID::PSP } },
 		{ "Chaos Control Trap",		{ TrapID::Stutter } },
 		{ "Chaos Trap",				{ TrapID::Icon } },
 		{ "Chart Modifier Trap",	{ TrapID::Icon } },
@@ -64,13 +67,20 @@ namespace APTraps
 		{ "Paralysis Trap",			{ TrapID::Stutter } },
 		{ "Paralyze Trap",			{ TrapID::Stutter } },
 		{ "Paratoad Trap",			{ TrapID::Stutter } },
+		{ "Pixelate Trap",			{ TrapID::PSP } },
+		{ "Pixellation Trap",		{ TrapID::PSP } },
 		{ "PowerPoint Trap",		{ TrapID::Slow } },
+		{ "Shrink Trap",			{ TrapID::PSP } },
 		{ "Shuffle Trap",			{ TrapID::Icon } },
 		{ "Sleep Trap",				{ TrapID::Stutter } },
 		{ "Slowness Trap",			{ TrapID::Slow } },
 		{ "Spooky Time",			{ TrapID::Hidden, TrapID::Sudden } },
 		{ "Stun Trap",				{ TrapID::Stutter } },
 		{ "Swap Trap",				{ TrapID::Icon } },
+		{ "Tiny Trap",				{ TrapID::PSP } },
+		{ "Zoom In Trap",			{ TrapID::PSP } },
+		{ "Zoom Out Trap",			{ TrapID::PSP } },
+		{ "Zoom Trap",				{ TrapID::PSP } },
 	};
 
 	const uint64_t DivaGameControlConfig = 0x1401D6520;
@@ -144,6 +154,9 @@ namespace APTraps
 
 		alternateArrows = section["icon_arrow_colors"].value_or(alternateArrows);
 		APLogger::print("trap icon_arrow_colors: %d\n", alternateArrows);
+
+		pspHeight = std::clamp(section["psp_height"].value_or(pspHeight), 45, 540);
+		APLogger::print("trap psp_height: %i\n", pspHeight);
 	}
 
 	void save(toml::table& settings)
@@ -158,6 +171,7 @@ namespace APTraps
 		config.insert("overlap", trapOverlap);
 		config.insert("trap_link", trap_link);
 		config.insert("trap_link_others", trap_link_others);
+		config.insert("psp_height", pspHeight);
 		config.insert("queue", queueTraps);
 		config.insert("queue_rate", queueTrapRate);
 
@@ -330,17 +344,58 @@ namespace APTraps
 		isPSP = true;
 	}
 
-	int targetWidth = 480;
-
 	void runPSP()
 	{
 		if (!isPSP) return;
 
 		if (APGUI::isInGame()) {
-			adjustViewport(nullptr, targetWidth, (float)prevRes.height / ((float)prevRes.width / (float)targetWidth), nullptr);
+			adjustViewport(nullptr, prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
 		}
 		else {
 			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
+		}
+	}
+
+	bool canRecv(const int64_t itemID)
+	{
+		return itemID >= static_cast<int64_t>(TrapID::Hidden) && itemID <= static_cast<int64_t>(TrapID::PSP);
+	}
+
+	void trapRecv(const int64_t itemID, const bool notify)
+	{
+		TrapID trap = static_cast<TrapID>(itemID);
+
+		switch (trap) {
+		case TrapID::Hidden:
+			if (!notify) return;
+			touchHidden();
+			linkSend("Hidden Trap");
+			break;
+		case TrapID::Sudden:
+			if (!notify) return;
+			touchSudden();
+			linkSend("Sudden Trap");
+			break;
+		case TrapID::Stutter:
+			if (!notify) return;
+			touchStutter();
+			linkSend("Stutter Trap");
+			break;
+		case TrapID::Icon:
+			if (!notify) return;
+			touchIcon();
+			linkSend("Icon Trap");
+			break;
+		case TrapID::Slow:
+			if (!notify) return;
+			touchSlow();
+			linkSend("Slow Trap");
+			break;
+		case TrapID::PSP:
+			if (!notify) return;
+			touchPSP();
+			linkSend("PSP Trap");
+			break;
 		}
 	}
 
@@ -395,6 +450,9 @@ namespace APTraps
 			case TrapID::Slow:
 				touchSlow();
 				break;
+			case TrapID::PSP:
+				touchPSP();
+				break;
 			}
 		}
 	}
@@ -412,9 +470,6 @@ namespace APTraps
 		if (now == 0.0f && lastRun > 0.0f) {
 			lastRun = 0.0f;
 			reset();
-
-			trapDuration = 30.0f;
-			touchPSP();
 			return;
 		}
 
@@ -551,11 +606,10 @@ namespace APTraps
 
 	void ImGuiTab()
 	{
-		char buf[32];
-		float songLength = getSongLength();
 		float now = getGameTime();
-		sprintf(buf, "%.03f / %.03f", now, songLength);
-		ImGui::ProgressBar(now / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), buf);
+		float songLength = getSongLength();
+		std::string songProgress = std::format(".03f / .03f", now, songLength);
+		ImGui::ProgressBar(now / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), songProgress.c_str());
 
 		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
 		HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
@@ -571,6 +625,11 @@ namespace APTraps
 		if (ImGui::SliderInt("Slow FPS", &slowTarget, 20, 40))
 			slowTarget = std::clamp(slowTarget, 15, 60);
 		HelpMarker("Chain Slides may have issues below 30 FPS, based on speed.");
+
+		std::string res = std::format("{}x{}", pspHeight * 16 / 9, pspHeight);
+		if (ImGui::SliderInt("PSP resolution", &pspHeight, 90, 270, res.c_str()))
+			pspHeight = std::clamp(pspHeight, 45, 540);
+		HelpMarker("Resolution for the PSP Trap.\n\n\"Frame\" and \"No Frame\" give sharper images while \"Fullscreen\" gives a softer image.");
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
 		ImGui::Checkbox("Icon Trap: Alternate arrow colors", &alternateArrows);
@@ -623,8 +682,6 @@ namespace APTraps
 			ImGui::SameLine();
 			if (ImGui::Button("PSP"))
 				touchPSP();
-
-			ImGui::SliderInt("PSP width", &targetWidth, 160, 480, nullptr, ImGuiSliderFlags_AlwaysClamp);
 
 			if (trap_link) {
 				static char tl[20];

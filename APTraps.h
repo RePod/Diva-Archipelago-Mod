@@ -11,7 +11,7 @@ namespace APTraps
 	enum struct TrapID : int64_t {
 		None = 0,
 		Random = 1, // TODO: Client specific Trap ID. Use to roll valid native traps.
-		PSP = 29, // Changes actual resolution, flickers, may mess with recording software.
+
 		// Datapackage's Trap IDs begin at 30. Up to that can be used for whatever.
 		Hidden = 30,
 		Sudden = 31,
@@ -19,6 +19,7 @@ namespace APTraps
 		Slow = 33,
 		Stutter = 34,
 		Icon = 35,
+		PSP = 36, // Changes actual resolution, minor flicker, may mess with recording software (Steam).
 	};
 
 	struct Resolution {
@@ -48,6 +49,9 @@ namespace APTraps
 	void resetIcon();
 	void run();
 	void runSlow();
+
+	bool canRecv(const int64_t itemID);
+	void trapRecv(const int64_t itemID, const bool notify);
 
 	void menuOpened();
 	void touchSudden();
