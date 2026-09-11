@@ -87,16 +87,9 @@ HOOK(void, __fastcall, _PvResultsFinalize, PvResultsFinalize, char* PvPlayData, 
 }
 
 
-// 0x140244BA0
-void* PvLoop = sigScan("\x48\x89\x5c\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xec\x20\x48\x8b\xf9\x33\xdb\xe8\xe7\x91\x03\x00", "xxxxxxxxxxxxxxxxxxxxxxxxx");
-HOOK(void, __fastcall, _PvLoop, PvLoop, char* PvPlayData) {
-    if (APClient::devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
-        APDeathLink::run(false);
-        APTraps::run();
-    }
-
-    original_PvLoop(PvPlayData);
-}
+// 0x140244BA0 previously used to run DL and Traps outside of OnFrame, but poorly timed for PSP Trap
+//void* PvLoop = sigScan("\x48\x89\x5c\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xec\x20\x48\x8b\xf9\x33\xdb\xe8\xe7\x91\x03\x00", "xxxxxxxxxxxxxxxxxxxxxxxxx");
+//HOOK(void, __fastcall, _PvLoop, PvLoop, char* PvPlayData) { original_PvLoop(PvPlayData); }
 
 // 0x1402462E0
 void* PvCalculateGrade = sigScan("\x48\x83\xec\x28\x80\xb9\xad\xd3\x02\x00\x00\x0f\x84\xc1\x00\x00\x00\xf3\x0f\x10\x81\x04\xd3\x02\x00\xe8\x92\x7a\x03\x00", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
@@ -235,7 +228,11 @@ extern "C"
         APClient::CheckMessages();
         APGUI::onFrame(swapChain);
         APIDHandler::slowReleaseRun();
-        APTraps::runPSP();
+
+        if (APClient::devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
+            APDeathLink::run(false);
+            APTraps::run();
+        }
 
         if (!ImGui::GetIO().WantCaptureKeyboard)
             APReload::scan();
@@ -248,7 +245,6 @@ extern "C"
         AP_SetLoggingCallback(APLogger::fromAPCpp);
 
         INSTALL_HOOK(_PvResultsFinalize);
-        INSTALL_HOOK(_PvLoop);
         INSTALL_HOOK(_PvCalculateGrade);
         INSTALL_HOOK(_PvGameApplyDiff);
         INSTALL_HOOK(_ModifierSudden);

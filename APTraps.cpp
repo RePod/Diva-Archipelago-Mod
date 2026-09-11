@@ -333,8 +333,6 @@ namespace APTraps
 		isSlow = true;
 	}
 
-	int pspFrame = 0;
-
 	void touchPSP()
 	{
 		float now = getGameTime();
@@ -345,22 +343,12 @@ namespace APTraps
 
 		APLogger::print("[%6.2f] Trap < PSP (expires: %.2f, %i x %i)\n", now, timestampPSP, prevRes.width, prevRes.height);
 		isPSP = true;
-
-		pspFrame = 0;
 	}
 
 	void runPSP()
 	{
-		if (!isPSP) return;
-
-		if (APGUI::isInGame()) {
-			adjustViewport(nullptr, prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
-
-			// Hide for a frame to avoid the more obvious flicker
-			int* offsetLeft = (int*)(*(prevRes.path) + 0x48);
-			*offsetLeft = pspFrame == 0 ? prevRes.width + (2 * prevRes.offsetX) : 0;
-
-			pspFrame += 1;
+		if (APGUI::isInGame() && isPSP) {
+			adjustViewport(nullptr, pspHeight == 272 ? 480 : prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
 		}
 		else {
 			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
@@ -475,6 +463,12 @@ namespace APTraps
 
 	void run()
 	{
+		// TODO: These traps disable themselves if the menu is open. We're currently OnFrame, so skip the rest if so.
+		runSlow();
+		runPSP();
+
+		if (!APGUI::isInGame()) return;
+
 		float now = getGameTime();
 
 		if (now == 0.0f && lastRun > 0.0f) {
@@ -486,9 +480,6 @@ namespace APTraps
 			return;
 
 		lastRun = now;
-
-		runSlow();
-		runPSP();
 
 		if (isSudden && now >= timestampSudden) {
 			APLogger::print("[%6.2f] Trap > Sudden expired\n", now);
@@ -519,7 +510,6 @@ namespace APTraps
 
 		if (isPSP && now >= timestampPSP) {
 			APLogger::print("[%6.2f] Trap > PSP expired\n", now);
-			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
 			timestampPSP = 0.0f;
 			isPSP = false;
 		}
@@ -527,7 +517,7 @@ namespace APTraps
 
 	void runSlow()
 	{
-		if (APGUI::isInGame() && isStutter || isSlow) {
+		if (APGUI::isInGame() && (isStutter || isSlow)) {
 			float now = getGameTime();
 			int* framerate = reinterpret_cast<int*>(0x1414ABBB8);
 			int target = 60;
@@ -561,6 +551,9 @@ namespace APTraps
 
 			if (*framerate != target)
 				*framerate = target;
+		}
+		else {
+			resetFramerate();
 		}
 	}
 
@@ -635,8 +628,8 @@ namespace APTraps
 			slowTarget = std::clamp(slowTarget, 15, 60);
 		HelpMarker("Chain Slides may have issues below 30 FPS, based on speed.");
 
-		std::string res = std::format("{}x{}", pspHeight * 16 / 9, pspHeight);
-		if (ImGui::SliderInt("PSP resolution", &pspHeight, 90, 270, res.c_str()))
+		std::string res = std::format("{}x{}", pspHeight == 272 ? 480 : pspHeight * 16 / 9, pspHeight);
+		if (ImGui::SliderInt("PSP resolution", &pspHeight, 90, 272, res.c_str()))
 			pspHeight = std::clamp(pspHeight, 45, 540);
 		HelpMarker("Resolution for the PSP Trap.\nBlurry? Try a display mode other than \"Fullscreen\".");
 

@@ -19,7 +19,7 @@ namespace APTraps
 		Slow = 33,
 		Stutter = 34,
 		Icon = 35,
-		PSP = 36, // Changes actual resolution, minor flicker, may mess with recording software (Steam).
+		PSP = 36, // Changes actual resolution, minor flicker (window resize) on some recording software but should be seamless for the player.
 	};
 
 	struct Resolution {
