@@ -536,6 +536,7 @@ namespace APClient
                 if (!ImGui::GetIO().KeyShift)
                     APReload::run();
             }
+            HelpMarker("Shift+Click to not reload.");
 
             ImGui::SameLine();
             ImGui::Text("Connected as %s", slotName);
