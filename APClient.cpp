@@ -178,33 +178,11 @@ namespace APClient
         case 3:
             APDeathLink::recvHP();
             break;
-        case static_cast<int64_t>(APTraps::TrapID::Hidden):
-            if (!notify) return;
-            APTraps::touchHidden();
-            APTraps::linkSend("Hidden Trap");
-            break;
-        case static_cast<int64_t>(APTraps::TrapID::Sudden):
-            if (!notify) return;
-            APTraps::touchSudden();
-            APTraps::linkSend("Sudden Trap");
-            break;
-        case static_cast<int64_t>(APTraps::TrapID::Stutter):
-            if (!notify) return;
-            APTraps::touchStutter();
-            APTraps::linkSend("Stutter Trap");
-            break;
-        case static_cast<int64_t>(APTraps::TrapID::Icon):
-            if (!notify) return;
-            APTraps::touchIcon();
-            APTraps::linkSend("Icon Trap");
-            break;
-        case static_cast<int64_t>(APTraps::TrapID::Slow):
-            if (!notify) return;
-            APTraps::touchSlow();
-            APTraps::linkSend("Slow Trap");
-            break;
         default:
-            if (itemID >= AP_ID_FACTOR) {
+            if (APTraps::canRecv(itemID)) {
+                APTraps::trapRecv(itemID, notify);
+            }
+            else if (itemID >= AP_ID_FACTOR) {
                 PushRecvID(itemID / AP_ID_FACTOR);
                 APHints::updateByItemName(item_ap_id_to_name[itemID]);
             }
