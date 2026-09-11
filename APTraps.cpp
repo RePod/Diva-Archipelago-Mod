@@ -157,7 +157,7 @@ namespace APTraps
 		alternateArrows = section["icon_arrow_colors"].value_or(alternateArrows);
 		APLogger::print("trap icon_arrow_colors: %d\n", alternateArrows);
 
-		pspHeight = std::clamp(section["psp_height"].value_or(pspHeight), 45, 540);
+		pspHeight = std::clamp(section["psp_height"].value_or(pspHeight), 45, 544);
 		APLogger::print("trap psp_height: %i\n", pspHeight);
 	}
 
@@ -209,10 +209,7 @@ namespace APTraps
 		isSlow = false;
 		isPSP = false;
 
-		if (prevRes.width > 0)
-			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
-		prevRes.clear();
-
+		runPSP();
 		resetFramerate();
 
 		return 0;
@@ -627,7 +624,7 @@ namespace APTraps
 
 		std::string res = std::format("{}x{}", pspHeight == 272 ? 480 : pspHeight * 16 / 9, pspHeight);
 		if (ImGui::SliderInt("PSP resolution", &pspHeight, 90, 272, res.c_str()))
-			pspHeight = std::clamp(pspHeight, 45, 540);
+			pspHeight = std::clamp(pspHeight, 45, 544);
 		HelpMarker("Resolution for the PSP Trap.\nBlurry? Try a display mode other than \"Fullscreen\".");
 
 		ImGui::Checkbox("Allow Sudden and Hidden to overlap", &trapOverlap);
