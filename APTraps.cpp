@@ -348,7 +348,7 @@ namespace APTraps
 			if (*currentHeight == pspHeight) return;
 
 			ImGui::SetWindowFocus(nullptr); // The client is going to be unusable anyway.
-			adjustViewport(nullptr, pspHeight == 272 ? 480 : prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
+			adjustViewport(nullptr, pspHeight % 272 == 0 ? 480 * pspHeight / 272 : prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
 		}
 		else if (prevRes.height > 0 && prevRes.height != *currentHeight) {
 			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
@@ -628,7 +628,7 @@ namespace APTraps
 			slowTarget = std::clamp(slowTarget, 15, 60);
 		HelpMarker("Chain Slides may have issues below 30 FPS, based on speed.");
 
-		std::string res = std::format("{}x{}", pspHeight == 272 ? 480 : pspHeight * 16 / 9, pspHeight);
+		std::string res = std::format("{}x{}", pspHeight % 272 == 0 ? 480 * pspHeight / 272 : pspHeight * 16 / 9, pspHeight);
 		if (ImGui::SliderInt("PSP resolution", &pspHeight, 90, 272, res.c_str()))
 			pspHeight = std::clamp(pspHeight, 45, 544);
 		HelpMarker("Resolution for the PSP Trap.\nBlurry? Try a display mode other than \"Fullscreen\".");
