@@ -340,12 +340,15 @@ namespace APTraps
 
 	void runPSP()
 	{
+		int* currentHeight = (int*)(*(prevRes.path) + 0x44);
 		if (APGUI::isInGame() && isPSP) {
+			if (*currentHeight == pspHeight) return;
+
+			ImGui::SetWindowFocus(nullptr); // The client is going to be unusable anyway.
 			adjustViewport(nullptr, pspHeight == 272 ? 480 : prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
 		}
-		else {
-			if (prevRes.width > 0 && prevRes.width != *(int*)(*(prevRes.path)+0x40))
-				adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
+		else if (prevRes.height > 0 && prevRes.height != *currentHeight) {
+			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
 		}
 	}
 
