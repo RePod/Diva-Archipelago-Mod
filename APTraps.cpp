@@ -248,13 +248,6 @@ namespace APTraps
 		return (trapExtendDuration && timestampTrap > 0.0f ? timestampTrap : now) + trapDuration;
 	}
 
-	void menuOpened()
-	{
-		static bool inGame = APGUI::isInGame();
-
-		//runPSP();
-	}
-
 	void touchSudden()
 	{
 		touchSudden(false);
@@ -351,7 +344,8 @@ namespace APTraps
 			adjustViewport(nullptr, pspHeight == 272 ? 480 : prevRes.width * pspHeight / prevRes.height, pspHeight, nullptr);
 		}
 		else {
-			adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
+			if (prevRes.width > 0 && prevRes.width != *(int*)(*(prevRes.path)+0x40))
+				adjustViewport(nullptr, prevRes.width, prevRes.height, nullptr);
 		}
 	}
 
