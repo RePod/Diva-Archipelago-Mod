@@ -158,6 +158,11 @@ namespace APClient
         json data = json::parse(bouncePacket.data);
 
         if (bouncePacket.tags->front() == "TrapLink") {
+            std::string src = data.value("source", "");
+
+            if (src.empty() || src == std::string(getSlotName()))
+                return;
+
             std::string trap = data.value("trap_name", "");
             APTraps::linkRecv(trap);
         }
