@@ -606,13 +606,13 @@ namespace APClient
                 ImGui::SetKeyboardFocusHere();
             }
 
-            std::stringstream winCon;
+            std::string winCon;
             if (leekNeed > 0)
-                winCon << leekHave << " / " << leekNeed << " Leeks";
+                winCon = std::format("{} / {} Leeks", leekHave, leekNeed);
             else if (locNeed > 0)
-                winCon << locHave << " / " << locNeed << " Checks";
+                winCon = std::format("{} / {} Checks", locHave, locNeed);
 
-            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize((winCon.str() + (APGUI::inlineTooltips ? " " : " (?) ")).c_str()).x);
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize((winCon + (APGUI::inlineTooltips ? " " : " (?) ")).c_str()).x);
             if (ImGui::InputText("##APsay", say, sizeof(say), ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 refocus = true;
@@ -624,11 +624,11 @@ namespace APClient
             ImGui::PopItemWidth();
 
             ImGui::SameLine();
-            ImGui::Text(winCon.str().c_str());
+            ImGui::Text(winCon.c_str());
 
             // TODO: Relocate
-            std::string goalTip = "Goal song: " + item_ap_id_to_name[victoryID] + "\n"
-                                    "Clear grade needed: " + (std::string)diffs[clearGrade - 1];
+            std::string goalTip = std::format("Goal song: {}\nClear grade needed: {}",
+                                               item_ap_id_to_name[victoryID], diffs[clearGrade - 1]);
 
             HelpMarker(goalTip.c_str());
         }
