@@ -51,7 +51,8 @@ namespace APTraps
 
 	int reset();
 	void resetIcon();
-	void run();
+	void runFrame(); // Ran OnFrame for traps that need to run when not in game, usually to disable themselves. Future hook?
+	void run(); // Ran during gameplay via hook to expire traps.
 	void runSlow();
 	void runPSP();
 

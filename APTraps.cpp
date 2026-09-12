@@ -461,14 +461,15 @@ namespace APTraps
 		float now = getGameTime();
 	}
 
-	void run()
+	void runFrame()
 	{
-		// TODO: These traps disable themselves if the menu is open. We're currently OnFrame, so skip the rest if so.
+		// TODO: These traps disable themselves if the menu is open.
 		runSlow();
 		runPSP();
+	}
 
-		if (!APGUI::isInGame()) return;
-
+	void run()
+	{
 		float now = getGameTime();
 
 		if (now == 0.0f && lastRun > 0.0f) {
