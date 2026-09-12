@@ -87,7 +87,7 @@ HOOK(void, __fastcall, _PvResultsFinalize, PvResultsFinalize, char* PvPlayData, 
 }
 
 
-// 0x140244BA0 previously used to run DL and Traps outside of OnFrame, but poorly timed for PSP Trap
+// 0x140244BA0
 void* PvLoop = sigScan("\x48\x89\x5c\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xec\x20\x48\x8b\xf9\x33\xdb\xe8\xe7\x91\x03\x00", "xxxxxxxxxxxxxxxxxxxxxxxxx");
 HOOK(void, __fastcall, _PvLoop, PvLoop, char* PvPlayData) {
     if (APClient::devMode || AP_GetConnectionStatus() == AP_ConnectionStatus::Authenticated) {
@@ -107,8 +107,29 @@ HOOK(void, __fastcall, _PvCalculateGrade, 0x1402462E0, char* PvPlayData) {
         APDeathLink::check_fail();
         APTraps::reset();
     }
+}
 
-    original_PvCalculateGrade(PvPlayData);
+// 0x14FB926F0
+HOOK(void, __fastcall, _PvUpdateHP, 0x14fb926f0, uintptr_t PvPlayData, int a2, char a3, char a4, uint64_t a5, char a6, char a7, char a8) {
+    // That's a lot of parameters.
+    // If HP is 0 after plus other criteria, can auto-retry the song.
+
+    original_PvUpdateHP(PvPlayData, a2, a3, a4, a5, a6, a7, a8);
+
+    if (!APClient::devMode && AP_GetConnectionStatus() != AP_ConnectionStatus::Authenticated)
+        return;
+
+    int& HP = *(int*)(PvPlayData + 0x2D234);
+    bool& noFail = *(bool*)(PvPlayData + 0x2D31D);
+    const bool& maxCombo = *(int*)(PvPlayData + 0x2D25C) > 0;
+    if (HP == 0 && !noFail) {
+        APTraps::reset();
+        APDeathLink::check_fail();
+
+        if (APDeathLink::auto_retry && maxCombo)
+            APDeathLink::resetSong();
+        //else APDeathLink::deathLinked = true;
+    }
 }
 
 // 0x14024B720
@@ -254,6 +275,7 @@ extern "C"
         INSTALL_HOOK(_PvCalculateGrade);
         INSTALL_HOOK(_PvGameApplyDiff);
         INSTALL_HOOK(_PvLoop);
+        INSTALL_HOOK(_PvUpdateHP);
         INSTALL_HOOK(_ModifierSudden);
         INSTALL_HOOK(_ModifierHidden);
         INSTALL_HOOK(_SafetyDuration);

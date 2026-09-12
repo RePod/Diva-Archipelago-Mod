@@ -196,8 +196,8 @@ namespace APDeathLink
 
     void check_fail()
     {
-        if (*(int*)DivaGameHP > 0)
-            return;
+        //if (*(int*)DivaGameHP > 0)
+        //    return;
 
         if (deathLinked) {
             APLogger::print("DeathLink > Fail: Already dying\n");
@@ -294,11 +294,12 @@ namespace APDeathLink
     void setHP(int HP)
     {
         HP = std::clamp(HP, 0, 255);
+        bool& noFail = *(bool*)(PvPlayData + 0x2D31D);
+        const bool& maxCombo = *(int*)(PvPlayData + 0x2D25C) > 0;
 
-        if (death_link && deathLinked && auto_retry && HP == 0 && APGUI::isInGame()) {
-            // TODO: If this eventually happens for own deaths, guarantee some gameplay
-            // such as a single note hit to prevent AFK death linking
-            resetQueued = true;
+        if (HP == 0 && !noFail && auto_retry && APGUI::isInGame() && (deathLinked || maxCombo) /* && death_link */) {
+            if (!deathLinked) check_fail();
+            if (maxCombo) resetQueued = true;
             return;
         }
 
@@ -337,14 +338,14 @@ namespace APDeathLink
             ImGui::Separator();
         }
 
+        ImGui::Checkbox("Automatic retry", &auto_retry);
+        HelpMarker("Any death will automatically restart the song.\nSending/receiving Death Links functions the same.");
+
         if (ImGui::Checkbox("Death Link", &death_link))
             APClient::UpdateTags();
         HelpMarker("When you die on your own or fail to reach Grade Needed (not both), everyone with Death Link enabled dies.");
 
         if (death_link) {
-            ImGui::Checkbox("Automatic retry", &auto_retry);
-            HelpMarker("If an incoming Death Link would kill, automatically retry the song.");
-
             if (ImGui::SliderInt("Death Link Amnesty", &death_link_amnesty, 0, 20)) {
                 death_link_amnesty = max(0, death_link_amnesty);
                 death_link_amnesty_count = death_link_amnesty;

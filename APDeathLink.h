@@ -3,8 +3,6 @@
 #include <chrono>
 #include <stdint.h>
 
-
-namespace fs = std::filesystem;
 namespace APDeathLink
 {
 	extern bool safetyExpired;
@@ -17,6 +15,9 @@ namespace APDeathLink
 	extern bool death_link_self;
 	extern int death_link_amnesty;
 	extern int death_link_amnesty_count;
+	extern bool auto_retry; // True: queue a song reset if a DL would kill
+
+	void resetSong();
 
 	void config(const toml::table& settings);
 	void save(toml::table& settings);
