@@ -228,7 +228,7 @@ namespace APDeathLink
 
     void run(bool received)
     {
-        if (!APGUI::isInGame()) return;
+        //if (!APGUI::isInGame()) return;
 
         auto now = *(float*)DivaGameTimer;
 
@@ -278,10 +278,10 @@ namespace APDeathLink
         int hit = (255 - HPfloor) * death_link_percent / 100;
         if (death_link_percent == 50)
             hit += 1;
+        else if (death_link_percent == 100)
+            hit = 255; // for prog HP and other exceptions. 100% is DEAD.
 
         int toHP = std::clamp(currentHP - hit, 0, 255);
-        if (death_link_percent == 100)
-            toHP = 0; // for prog HP and other exceptions. 100% is DEAD.
 
         deathLinked = toHP <= 0;
 
@@ -297,9 +297,10 @@ namespace APDeathLink
         bool& noFail = *(bool*)(PvPlayData + 0x2D31D);
         const bool& maxCombo = *(int*)(PvPlayData + 0x2D25C) > 0;
 
-        if (HP == 0 && !noFail && auto_retry && APGUI::isInGame() && (deathLinked || maxCombo) /* && death_link */) {
+        if (HP == 0  && !noFail && auto_retry && APGUI::isInGame() && (deathLinked || maxCombo) /* && death_link */) {
             if (!deathLinked) check_fail();
-            if (maxCombo) resetQueued = true;
+            //if (maxCombo)
+            resetQueued = true;
             return;
         }
 
@@ -374,26 +375,20 @@ namespace APDeathLink
                 ImGui::Separator();
 
                 if (ImGui::Button("100%")) {
+                    if (ImGui::GetIO().KeyShift) WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
                     deathLinked = true;
                     setHP(0);
                 }
+                HelpMarker("Arbitrarily set HP to 0.\n+Shift: unset NoFail");
 
                 ImGui::SameLine();
-                if (ImGui::Button("+NoFail##100")) {
-                    deathLinked = true;
-                    WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
-                    setHP(0);
-                }
 
-                ImGui::SameLine();
-                if (ImGui::Button("Recv"))
-                    run(true);
-
-                ImGui::SameLine();
-                if (ImGui::Button("+NoFail##recv")) {
-                    WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
+                if (ImGui::Button("Recv")) {
+                    if (ImGui::GetIO().KeyShift) WRITE_MEMORY(PvPlayData + 0x2D31D, bool, 0);
+                    deathLinked = false;
                     run(true);
                 }
+                HelpMarker("Fake receiving a Death Link.\n+Shift: unset NoFail");
 
                 ImGui::SameLine();
                 ImGui::Text("Linked: %d", deathLinked);
