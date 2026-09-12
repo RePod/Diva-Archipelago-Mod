@@ -107,6 +107,8 @@ HOOK(void, __fastcall, _PvCalculateGrade, 0x1402462E0, char* PvPlayData) {
         APDeathLink::check_fail();
         APTraps::reset();
     }
+
+    original_PvCalculateGrade(PvPlayData);
 }
 
 // 0x14FB926F0
