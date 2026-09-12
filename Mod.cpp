@@ -253,6 +253,7 @@ extern "C"
         INSTALL_HOOK(_PvResultsFinalize);
         INSTALL_HOOK(_PvCalculateGrade);
         INSTALL_HOOK(_PvGameApplyDiff);
+        INSTALL_HOOK(_PvLoop);
         INSTALL_HOOK(_ModifierSudden);
         INSTALL_HOOK(_ModifierHidden);
         INSTALL_HOOK(_SafetyDuration);
