@@ -113,16 +113,13 @@ namespace APDeathLink
         APLogger::print("DeathLink > Send\n");
         death_link_amnesty_count = death_link_amnesty;
 
-        // TODO: Slot aliases?
-        static std::string msg = "The Disappearance of " + std::string(APClient::getSlotName());
-
         AP_Bounce bounce;
         bounce.tags = &death_link_tags;
 
         json data;
-        data["time"] = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        data["time"] = (int64_t)std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
         data["source"] = APClient::getSlotName();
-        data["cause"] = msg.c_str();
+        data["cause"] = std::format("The Disappearance of {}", APClient::getSlotName()); // TODO: Slot aliases?
         bounce.data = data.dump();
 
         AP_SendBounce(bounce);
@@ -231,6 +228,8 @@ namespace APDeathLink
 
     void run(bool received)
     {
+        if (!APGUI::isInGame()) return;
+
         auto now = *(float*)DivaGameTimer;
 
         // Avoid stopping the fade in from white animation at the start of a song and
@@ -289,15 +288,16 @@ namespace APDeathLink
         APLogger::print("[%6.2f] DeathLink < death_link_in (%i - %i = %i / DL: %i)\n",
             now, currentHP, hit, toHP, deathLinked);
 
-        currentHP = toHP;
-        setHP(currentHP);
+        setHP(toHP);
     }
 
     void setHP(int HP)
     {
         HP = std::clamp(HP, 0, 255);
 
-        if (death_link && auto_retry && HP == 0 && APGUI::isInGame()) {
+        if (death_link && deathLinked && auto_retry && HP == 0 && APGUI::isInGame()) {
+            // TODO: If this eventually happens for own deaths, guarantee some gameplay
+            // such as a single note hit to prevent AFK death linking
             resetQueued = true;
             return;
         }
