@@ -35,6 +35,7 @@ namespace APTraps
 		{ "SFX Trap",		{ TrapID::SFX } },
 		{ "HiSpeed Trap",	{ TrapID::HiSpeed } },
 		{ "NoSpeed Trap",	{ TrapID::NoSpeed } },
+		{ "Lane Trap",		{ TrapID::Lane } },
 	};
 
 	// Known traps from other games, when trap_link_others is true
@@ -42,6 +43,7 @@ namespace APTraps
 	std::unordered_map<std::string, std::vector<TrapID>> trapMapExt = {
 		{ "144p Trap",				{ TrapID::PSP } },
 		{ "Aaa Trap",				{ TrapID::SFX } },
+		{ "Bald Trap",				{ TrapID::NoSpeed } },
 		{ "Banana Trap",			{ TrapID::Stutter } },
 		{ "Banana Peel Trap",		{ TrapID::Stutter } },
 		{ "Bee Trap",				{ TrapID::HiSpeed } },
@@ -53,6 +55,7 @@ namespace APTraps
 		{ "Chaos Trap",				{ TrapID::Icon } },
 		{ "Chart Modifier Trap",	{ TrapID::Icon } },
 		{ "Chaser Trap",			{ TrapID::HiSpeed } },
+		{ "Clear Image Trap",		{ TrapID::NoSpeed } },
 		{ "Confuse Trap",			{ TrapID::Icon } },
 		{ "Confound Trap",			{ TrapID::Icon } },
 		{ "Confusion Trap",			{ TrapID::Icon } },
@@ -72,6 +75,7 @@ namespace APTraps
 		{ "Fuzzy Trap",				{ TrapID::Icon } },
 		{ "Gadget Shuffle Trap",	{ TrapID::Icon } },
 		{ "Ghost",					{ TrapID::Hidden, TrapID::Sudden } },
+		{ "Gravity Trap",			{ TrapID::Lane } },
 		{ "Hiccup Trap",			{ TrapID::Stutter } },
 		{ "Honey Trap",				{ TrapID::Slow } },
 		{ "Ice Trap",				{ TrapID::Stutter } },
@@ -82,6 +86,7 @@ namespace APTraps
 		{ "Iron Boots Trap",		{ TrapID::Slow } },
 		{ "Laughter Trap",			{ TrapID::SFX } },
 		{ "Literature Trap",		{ TrapID::SFX } },
+		{ "Meteor Trap",			{ TrapID::Lane } },
 		{ "Metronome Trap",			{ TrapID::NoSpeed } },
 		{ "Nightmare Trap",			{ TrapID::Hidden, TrapID::Sudden } },
 		{ "Ninja Trap",				{ TrapID::Hidden, TrapID::Sudden } },
@@ -102,6 +107,7 @@ namespace APTraps
 		{ "Speed Up Trap",			{ TrapID::HiSpeed } },
 		{ "Spooky Time",			{ TrapID::Hidden, TrapID::Sudden } },
 		{ "Spotlight Trap",			{ TrapID::Hidden, TrapID::Sudden } },
+		{ "Squash Trap",			{ TrapID::Lane } },
 		{ "Sticky Floor Trap",		{ TrapID::Slow } },
 		{ "Stun Trap",				{ TrapID::Stutter } },
 		{ "Swap Trap",				{ TrapID::Icon } },
@@ -110,6 +116,7 @@ namespace APTraps
 		{ "Tiny Trap",				{ TrapID::PSP } },
 		{ "Vintage Trap",			{ TrapID::PSP, TrapID::Slow } },
 		{ "Wailnard",				{ TrapID::Stutter } },
+		{ "W I D E Trap",			{ TrapID::Lane } },
 		{ "Yap Trap",				{ TrapID::SFX } },
 		{ "Zoom In Trap",			{ TrapID::PSP } },
 		{ "Zoom Out Trap",			{ TrapID::PSP } },
@@ -273,6 +280,11 @@ namespace APTraps
 			TrapHiSpeed::trap.touchNoSpeed();
 			linkSend("NoSpeed Trap");
 			break;
+		case TrapID::Lane:
+			if (!notify) return;
+			TrapHiSpeed::trap.touchLane();
+			linkSend("Lane Trap");
+			break;
 		}
 	}
 
@@ -335,6 +347,9 @@ namespace APTraps
 				break;
 			case TrapID::NoSpeed:
 				TrapHiSpeed::trap.touchNoSpeed();
+				break;
+			case TrapID::Lane:
+				TrapHiSpeed::trap.touchLane();
 				break;
 			}
 		}

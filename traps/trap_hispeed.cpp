@@ -12,15 +12,18 @@ namespace TrapHiSpeed
 		lanePosition = std::clamp(settings["lane_position"].value_or(lanePosition), 0, 4);
 		APLogger::print("lane_position: %i\n", lanePosition);
 
-		flatAmplitudes = settings["flat_amplitudes"].value_or(flatAmplitudes);
-		APLogger::print("flat_amplitudes: %i\n", flatAmplitudes);
+		laneAmplitude = std::clamp(settings["lane_amplitude"].value_or(laneAmplitude), -5, 5);
+		APLogger::print("lane_amplitude: %i\n", laneAmplitude);
 	}
 
 	void _TrapHiSpeed::save(toml::table& settings)
 	{
+		//toml::table local;
 		settings.insert("hispeed_factor", hiSpeedFactor);
 		settings.insert("lane_position", lanePosition);
-		settings.insert("flat_amplitudes", flatAmplitudes);
+		settings.insert("lane_amplitude", laneAmplitude);
+
+		//settings.insert("hispeed", local);
 	}
 
 	void _TrapHiSpeed::resetHiSpeed()
@@ -34,17 +37,17 @@ namespace TrapHiSpeed
 		timestampNoSpeed = 0.0f;
 	}
 
-	void _TrapHiSpeed::resetLanes()
+	void _TrapHiSpeed::resetLane()
 	{
-		isLanes = false;
-		timestampLanes = 0.0f;
+		isLane = false;
+		timestampLane = 0.0f;
 	}
 
 	void _TrapHiSpeed::reset()
 	{
 		resetHiSpeed();
 		resetNoSpeed();
-		resetLanes();
+		resetLane();
 	}
 
 	bool _TrapHiSpeed::isRunningNoSpeed() const
@@ -52,9 +55,9 @@ namespace TrapHiSpeed
 		return isNoSpeed;
 	}
 
-	bool _TrapHiSpeed::isRunningLanes() const
+	bool _TrapHiSpeed::isRunningLane() const
 	{
-		return isLanes;
+		return isLane;
 	}
 
 	void _TrapHiSpeed::touchHiSpeed()
@@ -77,12 +80,12 @@ namespace TrapHiSpeed
 		APLogger::print("[%6.2f] Trap < NoSpeed (expires: %.2f)\n", now, timestampNoSpeed);
 	}
 
-	void _TrapHiSpeed::touchLanes()
+	void _TrapHiSpeed::touchLane()
 	{
-		timestampLanes = APTraps::getTrapEndTime(timestampLanes);
-		isLanes = true;
+		timestampLane = APTraps::getTrapEndTime(timestampLane);
+		isLane = true;
 
-		APLogger::print("[%6.2f] Trap < Lanes (expires: %.2f)\n", now, timestampLanes);
+		APLogger::print("[%6.2f] Trap < Lane (expires: %.2f)\n", now, timestampLane);
 	}
 
 	void _TrapHiSpeed::touch()
@@ -92,11 +95,11 @@ namespace TrapHiSpeed
 
 	void _TrapHiSpeed::tick()
 	{
-		if (!running && !isNoSpeed && !isLanes) return;
+		if (!running && !isNoSpeed && !isLane) return;
 
-		if (isLanes && now >= timestampLanes) {
-			APLogger::print("[%6.2f] Trap > Lanes expired\n", now);
-			resetLanes();
+		if (isLane && now >= timestampLane) {
+			APLogger::print("[%6.2f] Trap > Lane expired\n", now);
+			resetLane();
 			return;
 		}
 
@@ -115,7 +118,7 @@ namespace TrapHiSpeed
 
 	void _TrapHiSpeed::ImGuiConfig()
 	{
-		if (ImGui::CollapsingHeader("HiSpeed / NoSpeed / Lanes")) {
+		if (ImGui::CollapsingHeader("HiSpeed / NoSpeed / Lane")) {
 			static std::string fmt;
 			fmt = std::format("{:.3f} x {} = {:.3f}", hiSpeedFactor, getHighSpeedRate(), hiSpeedFactor * getHighSpeedRate());
 
@@ -125,8 +128,9 @@ namespace TrapHiSpeed
 
 			ImGui::Combo("Lane edge", &lanePosition, lanePos, IM_COUNTOF(lanePos));
 
-			ImGui::Checkbox("Lanes: Flat amplitudes", &flatAmplitudes);
-			HelpMarker("Flight paths will be flat instead of wavy.\nUncheck for more visual flair.");
+			if (ImGui::SliderInt("Amplitude multiplier", &laneAmplitude, -3, 3))
+				laneAmplitude = std::clamp(laneAmplitude, -5, 5);
+			HelpMarker("Multiply note amplitudes (waviness) by this amount.\n\n0 would be a straight line.\n1 would be the original value.");
 		}
 	}
 
@@ -150,13 +154,13 @@ namespace TrapHiSpeed
 			ImGui::Text("%.02f", timestampNoSpeed - now);
 		}
 
-		if (isLanes)
+		if (isLane)
 		{
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
-			ImGui::Text("Lanes");
+			ImGui::Text("Lane");
 			ImGui::TableNextColumn();
-			ImGui::Text("%.02f", timestampLanes - now);
+			ImGui::Text("%.02f", timestampLane - now);
 		}
 	}
 
@@ -172,8 +176,8 @@ namespace TrapHiSpeed
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("Lanes"))
-			touchLanes();
+		if (ImGui::Button("Lane"))
+			touchLane();
 	}
 
 	const float& _TrapHiSpeed::getHiSpeedFactor() const
@@ -181,9 +185,9 @@ namespace TrapHiSpeed
 		return hiSpeedFactor;
 	}
 
-	const bool& _TrapHiSpeed::getFlatAmplitudes() const
+	const int& _TrapHiSpeed::getLaneAmplitude() const
 	{
-		return flatAmplitudes;
+		return laneAmplitude;
 	}
 
 	const int& _TrapHiSpeed::getLanePosition() const
@@ -193,19 +197,19 @@ namespace TrapHiSpeed
 
 	HOOK(void, __fastcall, _NoteModifier, 0x14026E8E0, uintptr_t *a1, uintptr_t *note, float flying_time, int a4, int a5, int a6, long long *a7, long long a8, int noteTotal) {
 		int& modifier = *reinterpret_cast<int*>(PvPlayData + 0x2D120); // TODO: Move to APTraps?
-		if (modifier == 1 || note == nullptr || !trap.isRunningLanes() && !trap.isRunning() && !trap.isRunningNoSpeed()) {
+		if (modifier == 1 || note == nullptr || !trap.isRunningLane() && !trap.isRunning() && !trap.isRunningNoSpeed()) {
 			original_NoteModifier(a1, note, flying_time, a4, a5, a6, a7, a8, noteTotal);
 			return;
 		}
 
 		// Due to traps being temporary and AP potentially being retry heavy the original note has to be preserved.
 		// Functions this one calls out to could skip the backup and restore, but not all props are ready (freq).
-		// A copy was done original, but this works off the copy instead of copying back.
+		// A copy was done originally, but this works off the copy instead of copying back.
 		Note _note = *(Note*)note;
 		uintptr_t* _note_ptr = reinterpret_cast<uintptr_t*>(&_note);
 
-		if (trap.isRunningLanes()) {
-			APLogger::print("%i %3.2f x %3.2f <- %3.2f x %3.2f / %i %i\n", _note.type, _note.pos_x, _note.pos_y, _note.origin_x, _note.origin_y, _note.slide_start, _note.slide_end);
+		if (trap.isRunningLane()) {
+			//APLogger::print("%i %3.2f x %3.2f <- %3.2f x %3.2f / %i %i\n", _note.type, _note.pos_x, _note.pos_y, _note.origin_x, _note.origin_y, _note.slide_start, _note.slide_end);
 
 			// Surely this is available somewhere else already to track steps through a multi note
 
@@ -271,15 +275,14 @@ namespace TrapHiSpeed
 				}
 			}
 
-			auto distance = hypot(abs(_note.pos_x - _note.origin_x), abs(_note.pos_y - _note.origin_y));
+			//auto distance = hypot(abs(_note.pos_x - _note.origin_x), abs(_note.pos_y - _note.origin_y));
 			//distance *= 1.25;
 
-			if (trap.getFlatAmplitudes())
-				_note.amp = 0;
+			_note.amp *= trap.getLaneAmplitude();
 
 			int laneIndex = trap.getLanePosition();
 			if (laneIndex == 0 || laneIndex == 1) {
-				_note.pos_x = laneIndex == 0 ? 96.0f + offset_x : 384.0f;
+				_note.pos_x = laneIndex == 0 ? 96.0f + offset_x : 384.0f - offset_x;
 				_note.origin_x = laneIndex == 0 ? 12.0f + 480.0f + offset_x : -12.0f;
 
 				_note.pos_y = 77.0f + (24.0f * mult) + offset_y;
@@ -290,7 +293,7 @@ namespace TrapHiSpeed
 				_note.origin_x = _note.pos_x;
 
 				_note.pos_y = laneIndex == 3 ? 270.0f - 48.0f : 48.0f;
-				_note.origin_y = laneIndex == 3 ? -24.0f : 270.0f;
+				_note.origin_y = laneIndex == 3 ? -36.0f : 270.0f + 36.0f;
 			}
 
 			last_type = _note.type;

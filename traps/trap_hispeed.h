@@ -28,13 +28,13 @@ namespace TrapHiSpeed
 		void save(toml::table& settings);
 		void resetHiSpeed();
 		void resetNoSpeed();
-		void resetLanes();
+		void resetLane();
 		void reset();
 		bool isRunningNoSpeed() const;
-		bool isRunningLanes() const;
+		bool isRunningLane() const;
 		void touchHiSpeed();
 		void touchNoSpeed();
-		void touchLanes();
+		void touchLane();
 		void touch();
 		void tick();
 		void ImGuiConfig();
@@ -42,7 +42,7 @@ namespace TrapHiSpeed
 		void ImGuiExpose();
 
 		const float& getHiSpeedFactor() const;
-		const bool& getFlatAmplitudes() const;
+		const int& getLaneAmplitude() const;
 		const int& getLanePosition() const;
 
 	private:
@@ -51,10 +51,10 @@ namespace TrapHiSpeed
 		bool isNoSpeed = false;
 		float timestampNoSpeed = 0.0f;
 
-		bool isLanes = false;
-		float timestampLanes = 0.0f;
+		bool isLane = false;
+		float timestampLane = 0.0f;
 		int lanePosition = 0;
-		bool flatAmplitudes = false; // True: set amplitude to 0
+		int laneAmplitude = 1;
 	};
 
 	int getHighSpeedRate();
