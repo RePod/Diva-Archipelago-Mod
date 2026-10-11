@@ -4,6 +4,12 @@ namespace TrapHiSpeed
 {
 	const char* lanePos[4] = { "Left", "Right", "Top", "Bottom" };
 
+	// Config stored on the NS instead of the class
+	float hiSpeedFactor = 1.0f; // Extra mult on base high speed rate
+	int lanePosition = 0;
+	int laneAmplitude = 1;
+	bool laneNormDistance = true;
+
 	void _TrapHiSpeed::config(const toml::table& settings)
 	{
 		hiSpeedFactor = std::clamp(settings["hispeed_factor"].value_or(hiSpeedFactor), -10.0f, 10.0f);
@@ -14,6 +20,9 @@ namespace TrapHiSpeed
 
 		laneAmplitude = std::clamp(settings["lane_amplitude"].value_or(laneAmplitude), -5, 5);
 		APLogger::print("lane_amplitude: %i\n", laneAmplitude);
+
+		laneNormDistance = settings["lane_normalize"].value_or(laneNormDistance);
+		APLogger::print("lane_normalize: %i\n", laneNormDistance);
 	}
 
 	void _TrapHiSpeed::save(toml::table& settings)
@@ -22,6 +31,7 @@ namespace TrapHiSpeed
 		settings.insert("hispeed_factor", hiSpeedFactor);
 		settings.insert("lane_position", lanePosition);
 		settings.insert("lane_amplitude", laneAmplitude);
+		settings.insert("lane_normalize", laneNormDistance);
 
 		//settings.insert("hispeed", local);
 	}
@@ -131,6 +141,9 @@ namespace TrapHiSpeed
 			if (ImGui::SliderInt("Amplitude multiplier", &laneAmplitude, -3, 3))
 				laneAmplitude = std::clamp(laneAmplitude, -5, 5);
 			HelpMarker("Multiply note amplitudes (waviness) by this amount.\n\n0 would be a straight line.\n1 would be the original value.");
+
+			ImGui::Checkbox("Lane: Normalize distances", &laneNormDistance);
+			HelpMarker("Enabled: All notes will travel the same distance.\nMost notes should be unaffected by this.\n\nDisabled: Notes with greater distances can fly in faster than preceding notes. This is closer to the original chart's intent, but not completely accurate.");
 		}
 	}
 
@@ -180,21 +193,6 @@ namespace TrapHiSpeed
 			touchLane();
 	}
 
-	const float& _TrapHiSpeed::getHiSpeedFactor() const
-	{
-		return hiSpeedFactor;
-	}
-
-	const int& _TrapHiSpeed::getLaneAmplitude() const
-	{
-		return laneAmplitude;
-	}
-
-	const int& _TrapHiSpeed::getLanePosition() const
-	{
-		return lanePosition;
-	}
-
 	HOOK(void, __fastcall, _NoteModifier, 0x14026E8E0, uintptr_t *a1, uintptr_t *note, float flying_time, int a4, int a5, int a6, long long *a7, long long a8, int noteTotal) {
 		int& modifier = *reinterpret_cast<int*>(PvPlayData + 0x2D120); // TODO: Move to APTraps?
 		if (modifier == 1 || note == nullptr || !trap.isRunningLane() && !trap.isRunning() && !trap.isRunningNoSpeed()) {
@@ -209,10 +207,9 @@ namespace TrapHiSpeed
 		uintptr_t* _note_ptr = reinterpret_cast<uintptr_t*>(&_note);
 
 		if (trap.isRunningLane()) {
-			//APLogger::print("%i %3.2f x %3.2f <- %3.2f x %3.2f / %i %i\n", _note.type, _note.pos_x, _note.pos_y, _note.origin_x, _note.origin_y, _note.slide_start, _note.slide_end);
+			// TODO: flying_time is RIGHT THERE!
 
 			// Surely this is available somewhere else already to track steps through a multi note
-
 			static int index = 0;
 			static int last_type = -1;
 			index += 1;
@@ -253,15 +250,15 @@ namespace TrapHiSpeed
 				mult = mult_table[(_note.type - 25) % 4];
 			}
 			else if (_note.type == 37 || _note.type == 39 || _note.type == 40 || _note.type == 41 || _note.type == 42) { // Star, Double, Chance, Link, Link End
-				mult = 5;
+				static bool flipped = false;
+				static bool step = false;
+
+				mult = flipped ? 0 : 5;
 
 				if (_note.type == 41 || _note.type == 42) {
 					// Improve reading links
-					static bool flipped = false;
-					static bool step = true;
 
 					step = !step;
-					mult = flipped ? 0 : 5;
 
 					if (!step) {
 						offset_x = -24.0f;
@@ -275,15 +272,14 @@ namespace TrapHiSpeed
 				}
 			}
 
-			//auto distance = hypot(abs(_note.pos_x - _note.origin_x), abs(_note.pos_y - _note.origin_y));
-			//distance *= 1.25;
+			auto distance = laneNormDistance ? 0 : hypot(abs(_note.pos_x - _note.origin_x), abs(_note.pos_y - _note.origin_y));
+			_note.amp *= laneAmplitude;
+			int laneIndex = lanePosition;
 
-			_note.amp *= trap.getLaneAmplitude();
-
-			int laneIndex = trap.getLanePosition();
 			if (laneIndex == 0 || laneIndex == 1) {
 				_note.pos_x = laneIndex == 0 ? 96.0f + offset_x : 384.0f - offset_x;
-				_note.origin_x = laneIndex == 0 ? 12.0f + 480.0f + offset_x : -12.0f;
+				//_note.origin_x = laneIndex == 0 ? 480.0f + offset_x : -12.0f;
+				_note.origin_x = laneIndex == 0 ? 12.0f + max(480.0f, distance) + offset_x : 384.0f - 12.0f - max(384.0f, distance) - offset_x;
 
 				_note.pos_y = 77.0f + (24.0f * mult) + offset_y;
 				_note.origin_y = _note.pos_y + offset_y;
@@ -308,7 +304,7 @@ namespace TrapHiSpeed
 
 		if (trap.isRunning()) {
 			int rate = getHighSpeedRate();
-			float factor = trap.getHiSpeedFactor();
+			float factor = hiSpeedFactor;
 
 			auto _x = abs(_note.pos_x - _note.origin_x) * rate * factor;
 			auto _y = abs(_note.pos_y - _note.origin_y) * rate * factor;

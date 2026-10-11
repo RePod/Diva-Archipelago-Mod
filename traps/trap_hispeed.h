@@ -41,20 +41,12 @@ namespace TrapHiSpeed
 		void ImGuiStatus();
 		void ImGuiExpose();
 
-		const float& getHiSpeedFactor() const;
-		const int& getLaneAmplitude() const;
-		const int& getLanePosition() const;
-
 	private:
-		float hiSpeedFactor = 1.0f; // Extra mult on base high speed rate
-
 		bool isNoSpeed = false;
 		float timestampNoSpeed = 0.0f;
 
 		bool isLane = false;
 		float timestampLane = 0.0f;
-		int lanePosition = 0;
-		int laneAmplitude = 1;
 	};
 
 	int getHighSpeedRate();
