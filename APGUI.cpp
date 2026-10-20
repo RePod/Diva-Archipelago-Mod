@@ -66,6 +66,7 @@ namespace APGUI
         ImGui_ImplWin32_Init(g_hWnd);
         ImGui_ImplDX11_Init(g_Device, g_Context);
 
+        devMode = std::filesystem::exists(BasePath / "devmode");
         APSettings::load();
     }
 
