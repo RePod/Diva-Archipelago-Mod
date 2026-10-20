@@ -12,7 +12,7 @@ namespace APClient
 {
     const char* GameName = "Hatsune Miku Project Diva Mega Mix+";
 
-    bool devMode = true;
+    bool devMode = false;
 
     std::string slotName = "Player1"; // Slot names cap at 16 characters, not bytes. Good luck everyone.
     std::string slotServer = "archipelago.gg:38281";
