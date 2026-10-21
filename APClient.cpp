@@ -6,7 +6,6 @@
 #include "APReload.h"
 #include "APSettings.h"
 #include "APTraps.h"
-#include <deque>
 
 namespace APClient
 {

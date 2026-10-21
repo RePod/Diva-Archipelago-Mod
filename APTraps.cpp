@@ -1,6 +1,5 @@
 #include "APClient.h"
 #include "APTraps.h"
-#include <deque>
 #include "traps/trap.h"
 #include "traps/trap_sudden_hidden.h"
 #include "traps/trap_sfx.h"
@@ -63,6 +62,7 @@ namespace APTraps
 		{ "Cutscene Trap",			{ TrapID::Slow } },
 		{ "E. Gadd Ramblings",		{ TrapID::SFX } },
 		{ "Electrocution Trap",		{ TrapID::Stutter } },
+		{ "Enchantment Trap",		{ TrapID::HiSpeed } },
 		{ "Exposition Trap",		{ TrapID::SFX } },
 		{ "Extreme Chaos Mode",		{ TrapID::Stutter, TrapID::Slow, TrapID::Hidden, TrapID::Sudden, TrapID::Icon } },
 		{ "Fake Transition",		{ TrapID::Hidden, TrapID::Sudden } },
@@ -95,7 +95,7 @@ namespace APTraps
 		{ "Paratoad Trap",			{ TrapID::Stutter } },
 		{ "Phone Trap",				{ TrapID::SFX } },
 		{ "Pie Trap",				{ TrapID::Stutter } },
-		{ "Pincercrab Trap",		{ TrapID::Stutter } },
+		{ "Pincercrab",				{ TrapID::Stutter } },
 		{ "Pixelate Trap",			{ TrapID::PSP } },
 		{ "Pixellation Trap",		{ TrapID::PSP } },
 		{ "PowerPoint Trap",		{ TrapID::Slow } },
