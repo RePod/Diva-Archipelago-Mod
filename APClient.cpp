@@ -607,7 +607,7 @@ namespace APClient
                 if (size > avail)
                     ImGui::Spacing();
 
-                ImGui::Text(word.c_str());
+                ImGui::Text("%s", word.c_str());
 
                 const auto& nextword = *std::next(it);
                 auto nextavail = ImGui::GetContentRegionAvail().x;
@@ -667,7 +667,7 @@ namespace APClient
                     if (ImGui::Button("Cancel"))
                         AP_Shutdown();
                     ImGui::SameLine();
-                    ImGui::Text(refused ? "Wrong Name/Server/Password" : "Connecting...");
+                    ImGui::Text("%s", refused ? "Wrong Name/Server/Password" : "Connecting...");
                 }
         }
         else
@@ -835,7 +835,7 @@ namespace APClient
             ImGui::PopItemWidth();
 
             ImGui::SameLine();
-            ImGui::Text(winCon.c_str());
+            ImGui::Text("%s", winCon.c_str());
 
             // TODO: Relocate
             std::string goalTip = std::format("Goal song: {}\nClear grade needed: {}",
