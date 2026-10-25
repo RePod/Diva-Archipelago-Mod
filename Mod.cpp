@@ -160,7 +160,7 @@ HOOK(char**, __fastcall, _ReadDBLine, ReadDBLine, uint64_t a1, char** pv_db_prop
     key.assign(pv_db_prop[0], pv_db_prop[1] - pv_db_prop[0]);
 
     if (!APIDHandler::check(key)) {
-        // Encoutered a "diff.length=9.5" and took it personally. "095" is also valid.
+        // Encountered a "diff.length=9.5" and took it personally. "095" is also valid.
         for (int i = 0; i < val[1] - val[0]; i++) {
             *val[i] = '0';
         }
