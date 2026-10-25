@@ -153,7 +153,7 @@ HOOK(char**, __fastcall, _ReadDBLine, ReadDBLine, uint64_t a1, char** pv_db_prop
 
     char** original = original_ReadDBLine(a1, pv_db_prop);
 
-    if (original != nullptr && *original != nullptr && **original >= '1' && **original <= '2') {
+    if (original != nullptr && *original != nullptr && **original > '0' /* && **original <= '2' */) {
         std::string line(pv_db_prop[0], pv_db_prop[1]);
         if (!APIDHandler::check(line)) {
             **original = '0';
