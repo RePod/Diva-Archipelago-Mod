@@ -234,7 +234,7 @@ namespace APTraps
 
 	bool canRecv(const int64_t itemID)
 	{
-		return itemID >= static_cast<int64_t>(TrapID::Hidden) && itemID <= static_cast<int64_t>(TrapID::NoSpeed);
+		return itemID >= static_cast<int64_t>(TrapID::Hidden) && itemID <= static_cast<int64_t>(TrapID::Lane);
 	}
 
 	void trapRecv(const int64_t itemID, const bool notify)
