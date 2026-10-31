@@ -6,8 +6,6 @@
 
 class Trap;
 
-namespace fs = std::filesystem;
-
 namespace APTraps
 {
 	enum struct TrapID : int64_t {
