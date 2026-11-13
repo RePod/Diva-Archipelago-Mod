@@ -6,6 +6,7 @@ on:
   pull_request:
   schedule:
     - cron: "0 0 * * 0"
+  tag: '*'
 
 env:
   SOLUTION_FILE_PATH: .\ArchipelagoMod.sln
@@ -82,3 +83,14 @@ jobs:
         name: artifact-ArchipelagoMod-${{ matrix.build_config }}-PDB
         path: .\pdb\
         compression-level: 9
+
+    - name: Zip mod
+      if: github.ref_type == 'tag'
+      run: Compress-Archive -Path .\dist\ArchipelagoMod\* -DestinationPath ArchipelagoMod.zip
+
+    - uses: softprops/action-gh-release@v3
+      name: Release
+      if: github.ref_type == 'tag'
+      with:
+        make_latest: true
+        files: ArchipelagoMod.zip
