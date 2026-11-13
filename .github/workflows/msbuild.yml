@@ -11,7 +11,7 @@ env:
   SOLUTION_FILE_PATH: .\ArchipelagoMod.sln
 
 permissions:
-  contents: read
+  contents: writes
 
 jobs:
   build:
