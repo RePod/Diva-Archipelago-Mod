@@ -38,6 +38,7 @@ namespace APTraps
 
 	int reset();
 	void runFrame(); // Ran OnFrame for traps that need to run when not in game, usually to disable themselves. Future hook?
+	void runQueue();
 	void run(); // Ran during gameplay via hook to expire traps.
 
 	bool canRecv(const int64_t itemID);

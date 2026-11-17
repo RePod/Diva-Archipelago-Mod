@@ -42,7 +42,7 @@ public:
 	virtual void tick();
 
 	virtual void ImGuiConfig(); // Provide controls for user-configurable options. Can also hide some behind a "devMode" check.
-	virtual void ImGuiStatus(); // For dev mode, provide trap status such as it's time remaining and state to return to.
+	virtual void ImGuiStatus(); // For dev mode, provide trap status such as its time remaining and state to return to.
 	virtual void ImGuiExpose(); // For dev mode, expose any additional controls for testing trap internals.
 
 protected:

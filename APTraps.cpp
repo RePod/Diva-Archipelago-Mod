@@ -74,10 +74,13 @@ namespace APTraps
 		{ "Frozen Trap",			{ TrapID::Stutter } },
 		{ "Fuzzy Trap",				{ TrapID::Icon } },
 		{ "Gadget Shuffle Trap",	{ TrapID::Icon } },
+		{ "Gloom Trap",				{ TrapID::Hidden } },
 		{ "Ghost",					{ TrapID::Hidden, TrapID::Sudden } },
 		{ "Gravity Trap",			{ TrapID::Lane } },
+		{ "Hey! Trap",				{ TrapID::SFX } },
 		{ "Hiccup Trap",			{ TrapID::Stutter } },
 		{ "Honey Trap",				{ TrapID::Slow } },
+		{ "Ice Floor Trap",			{ TrapID::HiSpeed } },
 		{ "Ice Trap",				{ TrapID::Stutter } },
 		{ "Input Sequence Trap",	{ TrapID::Icon } },
 		{ "Invisiball Trap",		{ TrapID::Hidden, TrapID::Sudden } },
@@ -107,6 +110,7 @@ namespace APTraps
 		{ "Slowness Trap",			{ TrapID::Slow } },
 		{ "Speed Up Trap",			{ TrapID::HiSpeed } },
 		{ "Spam Trap",				{ TrapID::SFX } },
+		{ "Spider Web Trap",		{ TrapID::NoSpeed } },
 		{ "Spooky Time",			{ TrapID::Hidden, TrapID::Sudden } },
 		{ "Spotlight Trap",			{ TrapID::Hidden, TrapID::Sudden } },
 		{ "Squash Trap",			{ TrapID::Lane } },
@@ -116,6 +120,7 @@ namespace APTraps
 		{ "Tar Trap",				{ TrapID::Stutter } },
 		{ "Text Trap",				{ TrapID::SFX } },
 		{ "Tiny Trap",				{ TrapID::PSP } },
+		{ "Upscroll Trap",			{ TrapID::Lane } },
 		{ "Vintage Trap",			{ TrapID::PSP, TrapID::Slow } },
 		{ "Wailnard",				{ TrapID::Stutter } },
 		{ "W I D E Trap",			{ TrapID::Lane } },
@@ -131,6 +136,7 @@ namespace APTraps
 	// Internal
 
 	float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
+	float lastQueueRun = 0.0f;
 
 	std::deque<TrapID> trapQueue; // TODO
 
@@ -239,60 +245,15 @@ namespace APTraps
 
 	void trapRecv(const int64_t itemID, const bool notify)
 	{
-		TrapID trap = static_cast<TrapID>(itemID);
-
-		switch (trap) {
-		case TrapID::Hidden:
-			if (!notify) return;
-			TrapSuhidden::trap.touchSudden();
-			linkSend("Hidden Trap");
-			break;
-		case TrapID::Sudden:
-			if (!notify) return;
-			TrapSuhidden::trap.touchSudden();
-			linkSend("Sudden Trap");
-			break;
-		case TrapID::Stutter:
-			if (!notify) return;
-			TrapSlow::trap.touchStutter();
-			linkSend("Stutter Trap");
-			break;
-		case TrapID::Icon:
-			if (!notify) return;
-			TrapIcon::trap.touch();
-			linkSend("Icon Trap");
-			break;
-		case TrapID::Slow:
-			if (!notify) return;
-			TrapSlow::trap.touchSlow();
-			linkSend("Slow Trap");
-			break;
-		case TrapID::PSP:
-			if (!notify) return;
-			TrapPSP::trap.touch();
-			linkSend("PSP Trap");
-			break;
-		case TrapID::HiSpeed:
-			if (!notify) return;
-			TrapHiSpeed::trap.touchHiSpeed();
-			linkSend("HiSpeed Trap");
-			break;
-		case TrapID::NoSpeed:
-			if (!notify) return;
-			TrapHiSpeed::trap.touchNoSpeed();
-			linkSend("NoSpeed Trap");
-			break;
-		case TrapID::Lane:
-			if (!notify) return;
-			TrapHiSpeed::trap.touchLane();
-			linkSend("Lane Trap");
-			break;
-		}
+		if (!notify) return;
+		trapQueue.push_back(static_cast<TrapID>(itemID));
+		runQueue();
 	}
 
 	void linkSend(const std::string& trapName)
 	{
-		if (!trap_link || !APGUI::isInGame()) return;
+		// The size check is to prevent players from exhausting the entire queue except for the last trap.
+		if (!trap_link || !APGUI::isInGame() /* || trapQueue.size() > 0 */) return;
 
 		AP_Bounce bounce;
 		bounce.tags = &trap_link_tags;
@@ -357,9 +318,50 @@ namespace APTraps
 		}
 	}
 
-	void runQueue()
-	{
-		float now = getGameTime();
+	void runQueue() {
+		if (trapQueue.size() == 0) return;
+
+		TrapID trap = trapQueue.front();
+		trapQueue.pop_front();
+
+		switch (trap) {
+		case TrapID::Hidden:
+			TrapSuhidden::trap.touchSudden();
+			linkSend("Hidden Trap");
+			break;
+		case TrapID::Sudden:
+			TrapSuhidden::trap.touchSudden();
+			linkSend("Sudden Trap");
+			break;
+		case TrapID::Stutter:
+			TrapSlow::trap.touchStutter();
+			linkSend("Stutter Trap");
+			break;
+		case TrapID::Icon:
+			TrapIcon::trap.touch();
+			linkSend("Icon Trap");
+			break;
+		case TrapID::Slow:
+			TrapSlow::trap.touchSlow();
+			linkSend("Slow Trap");
+			break;
+		case TrapID::PSP:
+			TrapPSP::trap.touch();
+			linkSend("PSP Trap");
+			break;
+		case TrapID::HiSpeed:
+			TrapHiSpeed::trap.touchHiSpeed();
+			linkSend("HiSpeed Trap");
+			break;
+		case TrapID::NoSpeed:
+			TrapHiSpeed::trap.touchNoSpeed();
+			linkSend("NoSpeed Trap");
+			break;
+		case TrapID::Lane:
+			TrapHiSpeed::trap.touchLane();
+			linkSend("Lane Trap");
+			break;
+		}
 	}
 
 	void runFrame()
@@ -383,6 +385,8 @@ namespace APTraps
 
 		lastRun = now;
 
+		runQueue();
+
 		for (Trap* t : registeredTraps()) {
 			t->tick();
 		}
@@ -403,6 +407,46 @@ namespace APTraps
 			HelpMarker("Receiving a trap that's already running adds to its duration instead of overwriting it.");
 		}
 
+		if (ImGui::CollapsingHeader("Trap Queue")) {
+			ImGui::Text("%i trap(s) in queue", trapQueue.size());
+			//ImGui::Checkbox("Enabled", &queueTraps);
+			//HelpMarker("Instead of applying traps immediately, queue them.\nTrap Link still skips the queue.");
+
+			static int queueMode = 0;
+			ImGui::Text("%s", "Mode:");
+			ImGui::SameLine();
+			ImGui::RadioButton("Time", &queueMode, 0);
+			ImGui::SameLine();
+			ImGui::RadioButton("Percentage##xx", &queueMode, 1);
+
+			if (queueMode == 0) {
+				ImGui::SliderFloat("Queue rate", &queueTrapRate, -15.0f, 15.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
+				HelpMarker("0: Apply traps immediately\nPositive: Wait this long after the previous trap ends\nNegative: Wait this long after the previous trap starts");
+			} else if (queueMode == 1) {
+				static int perc = 5;
+				ImGui::SliderInt("Percentage##xx", &perc, 5, 25);
+			}
+
+			static bool a = true;
+			ImGui::Checkbox("Run on song list", &a);
+			HelpMarker("");
+		}
+
+		if (ImGui::CollapsingHeader("Trap Link")) {
+			if (ImGui::Checkbox("Enabled", &trap_link))
+				APClient::UpdateTags();
+			HelpMarker("Share traps with other Trap Link players.\nLinked traps will only apply during play instead of queuing up.\nNote: Traps of the same name from other games will apply regardless of the following option.");
+
+			//if (trap_link) {
+			ImGui::Checkbox("Traps from other games", &trap_link_others);
+			HelpMarker("Handle known traps of a similar effect from other games.\nExample: Ice Trap = Stutter Trap");
+			ImGui::SameLine();
+			ImGui::TextLinkOpenURL("(?)", "https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?gid=811965759");
+			//}
+
+			ImGui::Separator();
+		}
+
 		for (Trap* t : registeredTraps()) {
 			//ImGui::PushID(t);
 			//if (ImGui::CollapsingHeader("Trap X"))
@@ -410,30 +454,6 @@ namespace APTraps
 			//ImGui::PopID();
 		}
 
-		/*
-		ImGui::Separator();
-
-		ImGui::Checkbox("Queue Traps", &queueTraps);
-		HelpMarker("Instead of applying traps immediately, queue them.\nTrap Link still skips the queue.");
-
-		if (queueTraps) {
-			ImGui::SliderFloat("Queue rate", &queueTrapRate, -30.0f, 30.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
-			HelpMarker("+ Wait between traps\n0 No wait between traps\n- Wait between traps, but overlap");
-		}
-		*/
-
-		ImGui::Separator();
-
-		if (ImGui::Checkbox("Trap Link", &trap_link))
-			APClient::UpdateTags();
-		HelpMarker("Share traps with other Trap Link players.\nLinked traps will only apply during play instead of queuing up.\nNote: Traps of the same name from other games will apply regardless of the following option.");
-
-		if (trap_link) {
-			ImGui::Checkbox("Traps from other games", &trap_link_others);
-			HelpMarker("Handle known traps of a similar effect from other games.\nExample: Ice Trap = Stutter Trap");
-			ImGui::SameLine();
-			ImGui::TextLinkOpenURL("(?)", "https://docs.google.com/spreadsheets/d/1yoNilAzT5pSU9c2hYK7f2wHAe9GiWDiHFZz8eMe1oeQ/edit?gid=811965759");
-		}
 
 		if (devMode) {
 			ImGui::Separator();
