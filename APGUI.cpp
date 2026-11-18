@@ -312,7 +312,7 @@ namespace APGUI
         if (ImGui::CollapsingHeader("Developer Mode")) {
             ImGui::Checkbox("Show ImGui demo", &showImGuiDemo);
             ImGui::Checkbox("Enable Developer Mode", &devMode);
-            HelpMarker("Dangerous! For the curious or the stuck.");
+            HelpMarker("Dangerous! For the curious or the stuck.\nCreate a \"devmode\" file next to the mod DLL to auto enable.");
 
             if (devMode) {
                 // Easy crashes with other mods that already freopen'd to stdout
