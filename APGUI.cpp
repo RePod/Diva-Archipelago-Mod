@@ -282,7 +282,7 @@ namespace APGUI
             }*/
             ImGui::TextLinkOpenURL("Archipelago website", "https://archipelago.gg");
             ImGui::TextLinkOpenURL("Project Diva AP documentation", "https://github.com/Cynichill/DivaAPworld/tree/main/docs");
-            ImGui::TextLinkOpenURL("Project Diva AP Discord thread", "https://discord.com/channels/731205301247803413/1241134454391443580");
+            ImGui::TextLinkOpenURL("Project Diva AP Discord channel", "https://discord.com/channels/731205301247803413/1567218575293292574");
         }
 
         APReload::ImGuiTab();
