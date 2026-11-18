@@ -350,6 +350,7 @@ namespace APClient
 
         APIDHandler::reset();
         APHints::reset();
+        APTraps::resetQueue();
     }
 
     void PushRecvID(int64_t songID)

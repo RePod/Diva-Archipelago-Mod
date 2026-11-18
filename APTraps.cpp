@@ -16,8 +16,8 @@ namespace APTraps
 
 	float trapDuration = 15.0f;
 	bool trapExtendDuration = false; // True: Extend existing trap durations instead of overwriting. NEVER EXTEND STUTTER!
-	bool queueTraps = false;
-	float queueTrapRate = 0.0f; // +: Wait between traps, 0: apply after previous, -: Wait and overlap
+	bool queueOnSongList = false;
+	float queueInterval = 0.0f; // 0: Immediate, >0: Wait, chance to interact with Trap Duration
 
 	bool trap_link = false; // Is Trap Link enabled?
 	bool trap_link_others = false; // Handle known traps from other games?
@@ -137,8 +137,12 @@ namespace APTraps
 
 	float lastRun = 0.0f; // For delta time against APTraps::DivaGameTimer
 	float lastQueueRun = 0.0f;
+	float queueLastRun = 0.0f;
+	int linkSentCount = 0; // How many times linkSend has been been called.
+	int linkSentMax = 5; // Wrap linkSendCount to this.
 
-	std::deque<TrapID> trapQueue; // TODO
+	// Length/size checks should consider whether the front has already been popped.
+	std::deque<TrapID> trapQueue;
 
 	std::random_device rd;
 	std::mt19937 mt;
@@ -165,11 +169,8 @@ namespace APTraps
 		trapExtendDuration = section["duration_extend"].value_or(trapExtendDuration);
 		APLogger::print("trap extend duration: %i\n", trapExtendDuration);
 
-		queueTraps = section["queue"].value_or(queueTraps);
-		APLogger::print("trap queue: %d\n", queueTraps);
-
-		queueTrapRate = std::clamp(section["queue_rate"].value_or(queueTrapRate), -30.0f, 30.0f);
-		APLogger::print("trap icon_interval: %.02f\n", queueTrapRate);
+		queueInterval = std::clamp(section["queue_interval"].value_or(queueInterval), 0.0f, 60.0f);
+		APLogger::print("trap queue_interval: %.02f\n", queueInterval);
 
 		trap_link = section["trap_link"].value_or(false);
 		APLogger::print("trap_link: %d\n", trap_link);
@@ -191,8 +192,7 @@ namespace APTraps
 		config.insert("duration_extend", trapExtendDuration);
 		config.insert("trap_link", trap_link);
 		config.insert("trap_link_others", trap_link_others);
-		config.insert("queue", queueTraps);
-		config.insert("queue_rate", queueTrapRate);
+		config.insert("queue_interval", queueInterval);
 
 		for (Trap* t : registeredTraps()) {
 			t->save(config);
@@ -201,18 +201,23 @@ namespace APTraps
 		settings.insert("traps", config);
 	}
 
-	int reset()
+	void reset()
 	{
 		APLogger::print("Traps: reset\n");
 
 		lastRun = 0.0f;
+		queueLastRun = 0.0f;
+		linkSentCount = 0;
 		mt.seed(rd());
 
 		for (Trap* t : registeredTraps()) {
 			t->reset();
 		}
+	}
 
-		return 0;
+	void resetQueue()
+	{
+		trapQueue.clear();
 	}
 
 	float& getGameTime()
@@ -225,12 +230,12 @@ namespace APTraps
 		return *(float*)(PvPlayData + 0x2D338);
 	}
 
+	// TODO:
+	// Previously returned 0.0f or getSongLength(), when traps were tracked by their start time and went negative instead.
+	// getSongLength() is 0.0f by default and not updated until the next song is started.
+	// Could recalc on start if 0.0f, or set it ridiculously high here.
 	float getTrapEndTime(float& timestampTrap)
 	{
-		// TODO:
-		// Previously returned 0.0f or getSongLength(), when traps were tracked by their start time and went negative instead.
-		// getSongLength() is 0.0f by default and not updated until the next song is started.
-		// Could recalc on start if 0.0f, or set it ridiculously high here.
 		if (trapDuration == 0.0f)
 			return 3939.0f;
 
@@ -247,13 +252,21 @@ namespace APTraps
 	{
 		if (!notify) return;
 		trapQueue.push_back(static_cast<TrapID>(itemID));
-		runQueue();
+		//runQueue();
 	}
 
 	void linkSend(const std::string& trapName)
 	{
-		// The size check is to prevent players from exhausting the entire queue except for the last trap.
-		if (!trap_link || !APGUI::isInGame() /* || trapQueue.size() > 0 */) return;
+		if (!trap_link || !APGUI::isInGame())
+			return;
+
+		// Simple debounce to prevent spam.
+		if (queueInterval > 0.0f && queueInterval < 5.0f) {
+			bool skip = (linkSentCount > 0);
+			linkSentCount = (linkSentCount + 1) % linkSentMax;
+			if (skip)
+				return;
+		}
 
 		AP_Bounce bounce;
 		bounce.tags = &trap_link_tags;
@@ -319,7 +332,13 @@ namespace APTraps
 	}
 
 	void runQueue() {
-		if (trapQueue.size() == 0) return;
+		if (trapQueue.size() == 0)
+			return;
+
+		if (queueInterval > 0.0f && getGameTime() - queueLastRun < queueInterval)
+			return;
+
+		queueLastRun = getGameTime();
 
 		TrapID trap = trapQueue.front();
 		trapQueue.pop_front();
@@ -399,37 +418,38 @@ namespace APTraps
 		std::string songProgress = std::format("{:.03f} / {:.03f}", now, songLength);
 		ImGui::ProgressBar(now / songLength, ImVec2(ImGui::GetContentRegionAvail().x, 0.0f), songProgress.c_str());
 
-		ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
-		HelpMarker("Seconds until individual traps expire.\n0 to not expire for current attempt.");
-
-		if (trapDuration > 0.0f) {
-			ImGui::Checkbox("Extend trap durations", &trapExtendDuration);
-			HelpMarker("Receiving a trap that's already running adds to its duration instead of overwriting it.");
-		}
-
 		if (ImGui::CollapsingHeader("Trap Queue")) {
-			ImGui::Text("%i trap(s) in queue", trapQueue.size());
-			//ImGui::Checkbox("Enabled", &queueTraps);
-			//HelpMarker("Instead of applying traps immediately, queue them.\nTrap Link still skips the queue.");
+			std::string queuedSize = std::format("{} traps queued", trapQueue.size());
+			CenterText(queuedSize);
+			ImGui::Text("%s", queuedSize.c_str());
 
-			static int queueMode = 0;
-			ImGui::Text("%s", "Mode:");
-			ImGui::SameLine();
-			ImGui::RadioButton("Time", &queueMode, 0);
-			ImGui::SameLine();
-			ImGui::RadioButton("Percentage##xx", &queueMode, 1);
+			ImGui::SliderFloat("Trap Duration", &trapDuration, 0.0f, 300.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
+			HelpMarker("Seconds of gameplay until individual traps expire.\n0.0 to not expire for current attempt.");
 
-			if (queueMode == 0) {
-				ImGui::SliderFloat("Queue rate", &queueTrapRate, -15.0f, 15.0f, "%.1f seconds", ImGuiSliderFlags_AlwaysClamp);
-				HelpMarker("0: Apply traps immediately\nPositive: Wait this long after the previous trap ends\nNegative: Wait this long after the previous trap starts");
-			} else if (queueMode == 1) {
-				static int perc = 5;
-				ImGui::SliderInt("Percentage##xx", &perc, 5, 25);
+			if (trapDuration > 0.0f) {
+				ImGui::Checkbox("Extend trap durations", &trapExtendDuration);
+				HelpMarker("Receiving a trap that's already running adds to its duration instead of overwriting it.");
 			}
 
-			static bool a = true;
-			ImGui::Checkbox("Run on song list", &a);
-			HelpMarker("");
+			//static int queueMode = 0;
+			//ImGui::Text("%s", "Queue mode:");
+			//ImGui::SameLine();
+			//ImGui::RadioButton("Time", &queueMode, 0);
+			//ImGui::SameLine();
+			//ImGui::RadioButton("Percentage##radio", &queueMode, 1);
+
+			//if (queueMode == 0) {
+			if (ImGui::SliderFloat("Queue interval", &queueInterval, 0.0f, 15.0f, "%.1f seconds"))
+				queueInterval = std::clamp(queueInterval, 0.0f, 60.0f);
+			HelpMarker("Seconds of gameplay between queue runs.\n0.0 to apply traps immediately or higher to interact with Trap Duration.\nGreater than 0.0 but less than 5.0 will slow the rate of sending Trap Links.");
+			//} else if (queueMode == 1) {
+			//	static int perc = 5;
+			//	ImGui::SliderInt("Percentage##slider", &perc, 5, 25);
+			//}
+
+			//static bool a = true;
+			//ImGui::Checkbox("Queue while on song list", &a);
+			//HelpMarker("");
 		}
 
 		if (ImGui::CollapsingHeader("Trap Link")) {
@@ -492,6 +512,14 @@ namespace APTraps
 
 			if (ImGui::BeginTable("tableTraps", 2))
 			{
+				if (queueInterval > 0.0f) {
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("Queue");
+					ImGui::TableNextColumn();
+					ImGui::Text("%.02f <= %.02f (%i / %i)", getGameTime() - queueLastRun, queueInterval, linkSentCount, linkSentMax);
+				}
+
 				for (Trap* t : registeredTraps()) {
 					t->ImGuiStatus();
 				}
